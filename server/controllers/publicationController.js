@@ -9,7 +9,11 @@ function present(p) {
   const obj = p.toObject ? p.toObject() : p;
   const today = new Date().toISOString().slice(0, 10);
   const rates = [...(obj.rates || [])].sort((a, b) => (toKey(a.effectiveFrom) < toKey(b.effectiveFrom) ? 1 : -1));
-  return { ...obj, rates, currentRate: rateOn(obj.rates, today) };
+  const currentRate = rateOn(obj.rates, today);
+  // The rate entry effective today, newest first among those already in effect — its agency cost is "current".
+  const currentEntry = rates.find((r) => toKey(r.effectiveFrom) <= today) || rates[rates.length - 1];
+  const currentAgencyCost = currentEntry?.agencyCostPerCopy || 0;
+  return { ...obj, rates, currentRate, currentAgencyCost, currentMargin: currentRate - currentAgencyCost };
 }
 
 export async function list(req, res) {
@@ -25,11 +29,11 @@ export async function list(req, res) {
 }
 
 export async function create(req, res) {
-  const { initialRate, effectiveFrom, ...data } = req.body;
+  const { initialRate, agencyCost, effectiveFrom, ...data } = req.body;
   const start = effectiveFrom || new Date().toISOString().slice(0, 10);
   const pub = await Publication.create({
     ...data,
-    rates: [{ ratePerCopy: initialRate, effectiveFrom: parseDate(start), setBy: req.admin.name }],
+    rates: [{ ratePerCopy: initialRate, agencyCostPerCopy: agencyCost || 0, effectiveFrom: parseDate(start), setBy: req.admin.name }],
   });
   await audit(req, 'publication.created', 'Publication', pub._id, `Added ${pub.name} at ${formatPaise(initialRate)}/copy`);
   res.status(201).json(present(pub));
@@ -50,16 +54,17 @@ export async function update(req, res) {
 export async function addRate(req, res) {
   const pub = await Publication.findById(req.params.id);
   if (!pub) throw notFound('Publication not found');
-  const { ratePerCopy, effectiveFrom } = req.body;
+  const { ratePerCopy, agencyCostPerCopy = 0, effectiveFrom } = req.body;
   const when = parseDate(effectiveFrom);
   const previous = rateOn(pub.rates, effectiveFrom);
   const same = pub.rates.find((r) => toKey(r.effectiveFrom) === effectiveFrom);
   if (same) {
     same.ratePerCopy = ratePerCopy;
+    same.agencyCostPerCopy = agencyCostPerCopy;
     same.setBy = req.admin.name;
     same.createdAt = new Date();
   } else {
-    pub.rates.push({ ratePerCopy, effectiveFrom: when, setBy: req.admin.name });
+    pub.rates.push({ ratePerCopy, agencyCostPerCopy, effectiveFrom: when, setBy: req.admin.name });
   }
   await pub.save();
   await audit(

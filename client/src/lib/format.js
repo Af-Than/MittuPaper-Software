@@ -68,6 +68,44 @@ export function describeWeekdays(days = []) {
   return set.map((d) => WEEKDAYS[d]).join(', ') || '—';
 }
 
+/** ISO timestamp -> "12 Sep 2026, 4:05 pm" explicitly in IST (independent of the viewer's own timezone). */
+export function formatIST(value) {
+  if (!value) return '—';
+  return new Date(value).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata', day: 'numeric', month: 'short', year: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true });
+}
+/** "12 Sep 2026" in IST, no time. */
+export function formatDateIST(value) {
+  if (!value) return '—';
+  return new Date(value).toLocaleDateString('en-IN', { timeZone: 'Asia/Kolkata', day: 'numeric', month: 'short', year: 'numeric' });
+}
+/** ISO timestamp -> the "YYYY-MM-DDTHH:mm" an <input type="datetime-local"> expects, in IST. */
+export function dateTimeInputIST(value, fallbackNowOffsetMin = 0) {
+  const d = value ? new Date(value) : new Date(Date.now() + fallbackNowOffsetMin * 60000);
+  const ist = new Date(d.getTime() + (5 * 60 + 30) * 60000 - d.getTimezoneOffset() * 60000);
+  return ist.toISOString().slice(0, 16);
+}
+/** "now" as an IST datetime-local input value. */
+export const nowISTInput = () => dateTimeInputIST(new Date().toISOString());
+
+/** A short "X months" / "1 month" chip label for a due-months badge. */
+export const monthsLabel = (n) => `${n} month${n === 1 ? '' : 's'}`;
+/** "Jul–Sep 2026" (or "Jul 2026" for one month) from an ascending list of {year, month}. */
+export function monthRangeLabel(months) {
+  if (!months.length) return '';
+  if (months.length === 1) return monthLabel(months[0].year, months[0].month);
+  const first = months[0];
+  const last = months[months.length - 1];
+  const firstTxt = first.year === last.year ? MONTHS_SHORT[first.month - 1] : monthLabel(first.year, first.month);
+  return `${firstTxt}–${MONTHS_SHORT[last.month - 1]} ${last.year}`;
+}
+
+/** Days from today until a date (negative if already past). */
+export function daysUntilClient(date) {
+  if (!date) return null;
+  const ms = new Date(date).getTime() - Date.now();
+  return Math.ceil(ms / 86400000);
+}
+
 /** Browser-side parser for user agents (good enough for the Activity table) */
 export function describeUserAgent(ua = '') {
   const browser = /Edg\//.test(ua) ? 'Edge' : /OPR\//.test(ua) ? 'Opera' : /Chrome\//.test(ua) ? 'Chrome' : /Firefox\//.test(ua) ? 'Firefox' : /Safari\//.test(ua) ? 'Safari' : 'Unknown browser';

@@ -1,6 +1,7 @@
 import mongoose from 'mongoose';
 import { Bill, Customer, Payment, Subscription } from '../models/index.js';
-import { latestBillMap } from './billingService.js';
+import { dueSummaryMap } from './billingService.js';
+import { pendingOf } from './dues.js';
 
 const oid = (id) => new mongoose.Types.ObjectId(String(id));
 
@@ -8,14 +9,25 @@ const oid = (id) => new mongoose.Types.ObjectId(String(id));
  * Year matrix: one row per customer, a { billed, paid, balance } cell per month.
  *  billed  = the month's current charges
  *  paid    = amount paid against that month's bill
- *  balance = that bill's outstanding balance (includes carried dues)
- * "outstanding" for the year is the balance on the customer's last bill of the year
- * (summing monthly balances would double-count carried dues).
+ *  balance = that bill's OWN unpaid balance (its month's charges minus what was paid on it)
+ * "outstanding" for the year is every bill's pending amount, dated on or before this year
+ * (the due-months ledger — never a single carried-forward number).
  */
 export async function yearlyReport(year, customerId) {
   const filter = { year };
   if (customerId) filter.customer = oid(customerId);
-  const bills = await Bill.find(filter).populate('customer', 'name phone').lean();
+  const custFilter = customerId ? { customer: oid(customerId) } : {};
+  const [bills, allBills] = await Promise.all([
+    Bill.find(filter).populate('customer', 'name phone').lean(),
+    // every bill up to and including this year, to compute "as of year end" outstanding correctly
+    Bill.find({ ...custFilter, year: { $lte: year } }).select('customer year currentCharges amountPaid').lean(),
+  ]);
+
+  const pendingByCustomer = new Map();
+  for (const b of allBills) {
+    const key = String(b.customer);
+    pendingByCustomer.set(key, (pendingByCustomer.get(key) || 0) + pendingOf(b));
+  }
 
   const byCustomer = new Map();
   for (const b of bills) {
@@ -27,18 +39,13 @@ export async function yearlyReport(year, customerId) {
         months: {},
         totalBilled: 0,
         totalPaid: 0,
-        outstanding: 0,
-        lastMonth: 0,
+        outstanding: pendingByCustomer.get(key) || 0,
       });
     }
     const row = byCustomer.get(key);
     row.months[b.month] = { billed: b.currentCharges, paid: b.amountPaid, balance: b.balance, status: b.status };
     row.totalBilled += b.currentCharges;
     row.totalPaid += b.amountPaid;
-    if (b.month > row.lastMonth) {
-      row.lastMonth = b.month;
-      row.outstanding = b.balance;
-    }
   }
 
   const rows = [...byCustomer.values()].sort((a, b) => a.customer.name.localeCompare(b.customer.name));
@@ -102,14 +109,16 @@ export async function dashboardSummary() {
   }));
   const current = chart[chart.length - 1];
 
-  // Outstanding = balance on each customer's latest bill; top 5 by amount.
-  const latest = await latestBillMap();
+  // Outstanding = every bill's pending amount across every customer; top 5 by total due.
+  const allIds = await Customer.find({}).distinct('_id');
+  const dueMap = await dueSummaryMap(allIds);
   let outstanding = 0;
   const dues = [];
-  for (const [cid, l] of latest) {
-    if (l.balance > 0) {
-      outstanding += l.balance;
-      dues.push({ customerId: cid, balance: l.balance, year: l.year, month: l.month });
+  for (const id of allIds) {
+    const d = dueMap.get(String(id));
+    if (d && d.due > 0) {
+      outstanding += d.due;
+      dues.push({ customerId: String(id), balance: d.due, oldest: d.oldest, monthsDue: d.months.length });
     }
   }
   dues.sort((a, b) => b.balance - a.balance);
@@ -131,7 +140,11 @@ export async function dashboardSummary() {
     },
     chart,
     topDues: top.map((t) => ({
-      ...t,
+      customerId: t.customerId,
+      balance: t.balance,
+      monthsDue: t.monthsDue,
+      year: t.oldest?.year,
+      month: t.oldest?.month,
       name: nameOf.get(t.customerId)?.name || 'Unknown',
       phone: nameOf.get(t.customerId)?.phone || '',
     })),

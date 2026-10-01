@@ -26,3 +26,15 @@ export function paging(query, defaultLimit = 20, maxLimit = 200) {
 
 /** Parse a YYYY-MM-DD string as a UTC-midnight Date. */
 export const parseDate = (s) => new Date(`${s}T00:00:00.000Z`);
+
+/**
+ * Parse a "YYYY-MM-DDTHH:mm" string (from an <input type="datetime-local">, entered by the
+ * admin in India Standard Time — this app has one timezone of users) into the UTC Date it
+ * represents. IST is UTC+5:30, so UTC = local time - 5:30. Stored as UTC; display converts back.
+ */
+export function parseIST(s) {
+  const [datePart, timePart = '00:00'] = s.split('T');
+  const [y, m, d] = datePart.split('-').map(Number);
+  const [hh, mm] = timePart.split(':').map(Number);
+  return new Date(Date.UTC(y, m - 1, d, hh, mm) - (5 * 60 + 30) * 60000);
+}

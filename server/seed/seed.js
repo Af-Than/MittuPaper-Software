@@ -8,12 +8,14 @@ import mongoose from 'mongoose';
 import { env } from '../config/env.js';
 import { connectDB, disconnectDB } from '../config/db.js';
 import {
-  Admin, AuditLog, Bill, Customer, DeliveryAdjustment, LoginLog, Payment, Publication, Subscription,
+  Admin, AuditLog, Bill, Customer, DeliveryAdjustment, Employee, FuelEntry, LoginLog, OtherExpense,
+  Payment, Publication, RepairEntry, SalaryAdvance, SalaryPayment, Subscription, Vehicle,
 } from '../models/index.js';
 import { generateBill, recordPayment } from '../services/billingService.js';
 import { daysInMonth, pad2 } from '../services/billing.js';
+import { netSalary } from '../services/expenses.js';
 import { formatPaise, monthLabel } from '../utils/money.js';
-import { parseDate } from '../utils/http.js';
+import { parseDate, parseIST } from '../utils/http.js';
 
 const RESET = process.argv.includes('--reset');
 const SEED_MONTHS = 6; // number of past months to generate bills for
@@ -179,7 +181,12 @@ async function seedDemo(admins) {
   await DeliveryAdjustment.insertMany(adj);
   console.log(`  • ${adj.length} skipped/extra adjustments`);
 
-  // ---- bills and payments, oldest month first so dues carry forward ----
+  // ---- bills and payments, oldest month first ----
+  // Three customers are reserved to deliberately demonstrate 1, 2 and 3 months of due-months
+  // on the very first run: their most recent N months are forced unpaid, every earlier month
+  // for them is forced fully paid, so the due-months ledger shows exactly N months pending.
+  const FORCE_DUE_MONTHS = { [String(customers[0]._id)]: 1, [String(customers[1]._id)]: 2, [String(customers[2]._id)]: 3 };
+
   let billCount = 0;
   let payCount = 0;
   for (let mi = 0; mi < months.length; mi++) {
@@ -200,21 +207,27 @@ async function seedDemo(admins) {
       const payer = { id: admins[(mi + 1) % 2]._id, name: admins[(mi + 1) % 2].name };
       const mode = () => pick(['cash', 'cash', 'upi']);
 
-      const roll = rnd();
+      // Target this month's own bill explicitly, so the seed controls exactly which months
+      // stay pending (and therefore how many due-months each customer ends up showing).
+      const forceDue = FORCE_DUE_MONTHS[String(c._id)];
+      const monthsFromEnd = months.length - mi;
+      let roll = rnd();
+      if (forceDue) roll = monthsFromEnd <= forceDue ? 1 : 0; // 1 = force unpaid, 0 = force fully paid
+
       if (roll < fullP) {
-        if (bill.balance > 3000 && rnd() < 0.15) {
+        if (bill.balance > 3000 && rnd() < 0.15 && !forceDue) {
           const first = Math.round((bill.balance * 0.5) / 100) * 100;
-          await recordPayment({ billId: bill._id, amount: first, date: parseDate(payDate()), mode: 'cash', note: 'Part payment', admin: payer });
-          await recordPayment({ billId: bill._id, amount: bill.balance - first, date: parseDate(payDate()), mode: 'upi', note: 'Balance paid', admin: payer });
+          await recordPayment({ customer: c._id, targetBillId: bill._id, amount: first, date: parseDate(payDate()), mode: 'cash', note: 'Part payment', admin: payer });
+          await recordPayment({ customer: c._id, targetBillId: bill._id, amount: bill.balance - first, date: parseDate(payDate()), mode: 'upi', note: 'Balance paid', admin: payer });
           payCount += 2;
         } else {
-          await recordPayment({ billId: bill._id, amount: bill.balance, date: parseDate(payDate()), mode: mode(), note: '', admin: payer });
+          await recordPayment({ customer: c._id, targetBillId: bill._id, amount: bill.balance, date: parseDate(payDate()), mode: mode(), note: '', admin: payer });
           payCount++;
         }
       } else if (roll < partialP) {
         const part = Math.round((bill.balance * (0.4 + rnd() * 0.3)) / 1000) * 1000;
         if (part >= 1000 && part < bill.balance) {
-          await recordPayment({ billId: bill._id, amount: part, date: parseDate(payDate()), mode: mode(), note: 'Partial payment', admin: payer });
+          await recordPayment({ customer: c._id, targetBillId: bill._id, amount: part, date: parseDate(payDate()), mode: mode(), note: 'Partial payment', admin: payer });
           payCount++;
         }
       }
@@ -257,6 +270,208 @@ async function seedDemo(admins) {
       });
     }
   }
+
+  // ---- Delivery routes: assign a few customers to an employee + named route (Part C) ----
+  const employees = await seedExpenses(admins);
+  const routeAssignments = [
+    [customers[0], employees[0], 'Pattom Route'], [customers[1], employees[0], 'Pattom Route'],
+    [customers[5], employees[1], 'Kottayam Town'], [customers[6], employees[1], 'Kottayam Town'],
+    [customers[9], employees[2], 'Kozhikode Beach Road'], [customers[15], employees[3], 'Kochi Central'],
+  ];
+  for (const [c, e, routeName] of routeAssignments) {
+    c.employee = e._id;
+    c.routeName = routeName;
+    await c.save();
+  }
+  console.log(`  • ${routeAssignments.length} customers assigned to delivery routes`);
+}
+
+// ================= Expense module seed data =================
+
+const EMPLOYEES = [
+  ['Rajeev Pillai', '9961012345', 'supervisor', 20000_00],
+  ['സുരേഷ് ബാബു', '9847123450', 'delivery', 14000_00],
+  ['Noufal Rahman', '9744234501', 'delivery', 13000_00],
+  ['ബിജു തോമസ്', '9895345612', 'delivery', 15000_00],
+];
+
+// 4 vehicles per employee, a realistic mix of makes/types.
+const VEHICLE_TEMPLATES = [
+  ['bike', 'Hero Splendor', 'petrol'],
+  ['scooter', 'Honda Activa', 'petrol'],
+  ['scooter', 'TVS XL100', 'petrol'],
+  ['ev-scooter', 'Ather 450X', 'electric'],
+];
+const EXTRA_VEHICLES = [
+  ['bike', 'Bajaj Platina', 'petrol'],
+  ['auto', 'Piaggio Ape', 'petrol'],
+  ['mini-van', 'Tata Ace', 'diesel'],
+  ['scooter', 'TVS Jupiter', 'petrol'],
+];
+
+const REPAIR_CATEGORIES = ['service', 'tyre', 'brake', 'engine', 'battery', 'electrical', 'other'];
+const WORKSHOPS = ['Highway Motors', 'Sree Auto Works', 'City Service Point', 'Balan\'s Garage'];
+const OTHER_CATEGORIES = ['rent', 'electricity', 'phone-internet', 'stationery-packing', 'miscellaneous'];
+const OTHER_DESCRIPTIONS = {
+  rent: 'Monthly office/godown rent', electricity: 'Electricity bill', 'phone-internet': 'Broadband + mobile recharge',
+  'stationery-packing': 'Packing covers and stationery', miscellaneous: 'Miscellaneous office expense',
+};
+
+/** IST datetime string "YYYY-MM-DDTHH:mm" for a seed month index + day + hour. */
+const istAt = (mi, day, hour = 8, minute = 0) => `${ymd(mi, day)}T${pad2(hour)}:${pad2(minute)}`;
+
+async function seedExpenses(admins) {
+  // ---- employees ----
+  const employees = [];
+  for (const [name, phone, role, salary] of EMPLOYEES) {
+    employees.push(await Employee.create({ name, phone, role, joinDate: parseDate('2024-06-01'), monthlySalary: salary, salaryDueDay: 1, createdBy: admins[0]._id }));
+  }
+
+  // ---- vehicles: 4 per employee ----
+  const vehicles = [];
+  let regCounter = 1;
+  for (const [ei, emp] of employees.entries()) {
+    const templates = ei === 0 ? [...VEHICLE_TEMPLATES.slice(0, 3), EXTRA_VEHICLES[2]] : VEHICLE_TEMPLATES;
+    for (const [type, makeModel, fuelType] of templates) {
+      const reg = `KL-${pad2(between(7, 55))}-${pick(['A', 'B', 'C'])}${pick(['A', 'B', 'C', 'D'])}-${String(1000 + regCounter * 37).slice(-4)}`;
+      regCounter++;
+      // Deliberately: one vehicle's insurance already expired, one's PUC expiring within 30 days.
+      const docOffsetInsurance = regCounter === 2 ? -10 : between(40, 400);
+      const docOffsetPuc = regCounter === 4 ? 18 : between(20, 300);
+      const today = new Date();
+      const addDays = (n) => new Date(today.getTime() + n * 86400000);
+      vehicles.push(
+        await Vehicle.create({
+          registrationNumber: reg,
+          type,
+          makeModel,
+          fuelType,
+          assignedEmployee: emp._id,
+          odometer: between(3000, 18000),
+          insuranceExpiry: addDays(docOffsetInsurance),
+          pollutionExpiry: addDays(docOffsetPuc),
+          fitnessExpiry: fuelType === 'electric' ? null : addDays(between(100, 600)),
+          nextServiceDueKm: between(8000, 20000),
+          createdBy: admins[0]._id,
+        })
+      );
+    }
+  }
+  console.log(`  • ${employees.length} employees, ${vehicles.length} vehicles`);
+
+  // ---- fuel entries: 3-6 per vehicle per month, odometer increasing, occasional partial fill ----
+  let fuelCount = 0;
+  for (const v of vehicles) {
+    let odo = Math.max(1000, v.odometer - 4000);
+    for (let mi = 0; mi < months.length; mi++) {
+      const fillsThisMonth = v.fuelType === 'electric' ? between(2, 4) : between(3, 6);
+      // The 4th vehicle created (regCounter tracking not kept per-vehicle; use array index 3) gets a mileage drop in the last month.
+      const isDropVehicle = vehicles.indexOf(v) === 3;
+      for (let f = 0; f < fillsThisMonth; f++) {
+        const day = Math.min(28, Math.floor((f + 1) * (28 / fillsThisMonth)));
+        const baseLitres = v.type === 'mini-van' ? between(6, 9) : between(2, 4);
+        const litres = v.fuelType === 'electric' ? between(3, 5) : baseLitres;
+        const normalKmPerLitre = v.type === 'mini-van' ? 18 : v.fuelType === 'electric' ? 35 : 45;
+        const kmPerLitre = isDropVehicle && mi === months.length - 1 ? normalKmPerLitre * 0.6 : normalKmPerLitre;
+        const km = Math.round(litres * kmPerLitre);
+        odo += km;
+        const pricePerLitre = v.fuelType === 'diesel' ? 9200 : v.fuelType === 'electric' ? 1000 : 10500;
+        const amount = Math.round(litres * pricePerLitre);
+        const fullTank = f === fillsThisMonth - 1 || rnd() < 0.7;
+        // eslint-disable-next-line no-await-in-loop
+        await FuelEntry.create({
+          vehicle: v._id, employee: v.assignedEmployee, fuelledAt: parseIST(istAt(mi, day, between(7, 19))),
+          litres, pricePerLitre, amount, odometer: odo, station: pick(['Highway Fuels', 'BPCL Bunk', 'IOC Station', 'Green Charge Point']),
+          fullTank, paymentMode: pick(['cash', 'cash', 'upi']), createdBy: admins[mi % 2]._id,
+        });
+        fuelCount++;
+      }
+    }
+    v.odometer = odo;
+    // eslint-disable-next-line no-await-in-loop
+    await v.save();
+  }
+  console.log(`  • ${fuelCount} fuel entries`);
+
+  // ---- repairs: ~25 across vehicles, a few pending ----
+  let repairCount = 0;
+  const totalRepairs = 25;
+  for (let n = 0; n < totalRepairs; n++) {
+    const v = pick(vehicles);
+    const mi = between(0, months.length - 1);
+    const category = pick(REPAIR_CATEGORIES);
+    const partsCost = between(200, 3000) * 100;
+    const labourCost = between(100, 800) * 100;
+    const pending = n % 7 === 0; // a few left pending
+    await RepairEntry.create({
+      vehicle: v._id, repairedAt: parseIST(istAt(mi, between(1, 27), between(9, 18))), category,
+      description: `${category.charAt(0).toUpperCase() + category.slice(1)} work on ${v.makeModel}`,
+      workshop: pick(WORKSHOPS), partsCost, labourCost, total: partsCost + labourCost,
+      odometer: v.odometer - between(0, 2000), status: pending ? 'pending' : 'completed',
+      paymentMode: pick(['cash', 'cash', 'upi']), createdBy: admins[n % 2]._id,
+    });
+    repairCount++;
+  }
+  console.log(`  • ${repairCount} repair entries`);
+
+  // ---- salary advances (2) ----
+  const advance1 = await SalaryAdvance.create({ employee: employees[1]._id, amount: 300000, givenOn: parseDate(ymd(1, 10)), reason: 'Medical emergency', createdBy: admins[0]._id });
+  const advance2 = await SalaryAdvance.create({ employee: employees[2]._id, amount: 200000, givenOn: parseDate(ymd(2, 15)), reason: 'Festival advance', createdBy: admins[1]._id });
+  console.log('  • 2 salary advances');
+
+  // ---- salaries: paid for all employees in prior months (a few late), current month mostly pending ----
+  let salaryCount = 0;
+  for (let mi = 0; mi < months.length - 1; mi++) {
+    for (const [ei, emp] of employees.entries()) {
+      const late = rnd() < 0.2;
+      const payDay = late ? between(6, 12) : between(1, 4);
+      let advanceRecovered = 0;
+      if (ei === 1 && mi >= 1) advanceRecovered = Math.min(50000, advance1.amount - advance1.recoveredAmount);
+      if (ei === 2 && mi >= 2) advanceRecovered = Math.min(40000, advance2.amount - advance2.recoveredAmount);
+      const netPaid = netSalary({ baseSalary: emp.monthlySalary, advanceRecovered });
+      // eslint-disable-next-line no-await-in-loop
+      await SalaryPayment.create({
+        employee: emp._id, forYear: months[mi].year, forMonth: months[mi].month, baseSalary: emp.monthlySalary,
+        advanceRecovered, netPaid, paidOn: parseIST(istAt(mi, payDay, 11)), mode: pick(['cash', 'cash', 'bank']),
+        recordedBy: admins[mi % 2]._id, recordedByName: admins[mi % 2].name,
+      });
+      if (advanceRecovered > 0) {
+        const advance = ei === 1 ? advance1 : advance2;
+        advance.recoveredAmount += advanceRecovered;
+        // eslint-disable-next-line no-await-in-loop
+        await advance.save();
+      }
+      salaryCount++;
+    }
+  }
+  // Current (most recent) seeded month: pay employees[0] and employees[3] on time, leave 1 & 2 pending.
+  const lastMi = months.length - 1;
+  for (const ei of [0, 3]) {
+    const emp = employees[ei];
+    const netPaid = netSalary({ baseSalary: emp.monthlySalary });
+    await SalaryPayment.create({
+      employee: emp._id, forYear: months[lastMi].year, forMonth: months[lastMi].month, baseSalary: emp.monthlySalary,
+      netPaid, paidOn: parseIST(istAt(lastMi, 2, 10)), mode: 'cash', recordedBy: admins[0]._id, recordedByName: admins[0].name,
+    });
+    salaryCount++;
+  }
+  console.log(`  • ${salaryCount} salary payments (employees[1] and [2] left pending for the latest month)`);
+
+  // ---- other expenses: ~30 across 6 months ----
+  let otherCount = 0;
+  for (let mi = 0; mi < months.length; mi++) {
+    await OtherExpense.create({ category: 'rent', amount: 800000, date: parseDate(ymd(mi, 1)), description: OTHER_DESCRIPTIONS.rent, paymentMode: 'other', createdBy: admins[0]._id });
+    await OtherExpense.create({ category: 'electricity', amount: between(80, 180) * 100, date: parseDate(ymd(mi, 5)), description: OTHER_DESCRIPTIONS.electricity, paymentMode: 'upi', createdBy: admins[mi % 2]._id });
+    otherCount += 2;
+    for (let n = 0; n < 3; n++) {
+      const category = pick(OTHER_CATEGORIES.slice(2));
+      await OtherExpense.create({ category, amount: between(100, 1500) * 100, date: parseDate(ymd(mi, between(2, 27))), description: OTHER_DESCRIPTIONS[category], paymentMode: pick(['cash', 'upi']), createdBy: admins[mi % 2]._id });
+      otherCount++;
+    }
+  }
+  console.log(`  • ${otherCount} other expense entries`);
+
+  return employees;
 }
 
 async function main() {

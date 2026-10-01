@@ -5,15 +5,16 @@ import { api } from '../api';
 import { errorMessage } from '../api/client';
 import { useApi, useDebounced } from '../hooks/useApi';
 import { useToast } from '../context/ToastContext';
-import { Badge, EmptyState, ErrorState, PageHeader, Pagination, Skeleton } from '../components/ui';
+import { Badge, DueBadge, EmptyState, ErrorState, PageHeader, Pagination, Skeleton } from '../components/ui';
 import ConfirmDialog from '../components/ConfirmDialog';
 import CustomerFormModal from '../components/CustomerFormModal';
-import { initials, money } from '../lib/format';
+import { initials } from '../lib/format';
 
 const FILTERS = [
   { key: 'all', label: 'All' },
   { key: 'active', label: 'Active' },
   { key: 'dues', label: 'With dues' },
+  { key: 'overdue', label: '2+ months overdue' },
   { key: 'inactive', label: 'Inactive' },
 ];
 
@@ -45,9 +46,9 @@ function CustomerCard({ c, onEdit, onDelete }) {
         {!c.subscriptions.length && <span className="text-xs text-ink-muted">No active subscriptions</span>}
       </div>
 
-      <div className="mt-4 flex items-center justify-between border-t border-line pt-3">
-        {!c.active ? <Badge>Inactive</Badge> : <span className="text-xs text-ink-muted">Current due</span>}
-        {c.due > 0 ? <Badge tone="danger" className="text-sm font-semibold tabular-nums">{money(c.due)}</Badge> : <Badge tone="success">No dues</Badge>}
+      <div className="mt-4 flex items-center justify-between gap-2 border-t border-line pt-3">
+        {!c.active && <Badge>Inactive</Badge>}
+        <DueBadge months={c.dueMonths} due={c.due} />
       </div>
     </article>
   );

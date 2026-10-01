@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { Link, useSearchParams } from 'react-router-dom';
+import { useSearchParams } from 'react-router-dom';
 import { ChevronLeft, ChevronRight, Download, FileText, HandCoins, Printer, RefreshCw, TriangleAlert } from 'lucide-react';
 import { api } from '../api';
 import { download, errorMessage } from '../api/client';
@@ -9,6 +9,7 @@ import { useToast } from '../context/ToastContext';
 import { BRAND } from '../lib/brand';
 import { Badge, EmptyState, ErrorState, MonthYearPicker, PageHeader, Skeleton, StatusBadge, Tabs, shiftMonth } from '../components/ui';
 import PaymentModal from '../components/PaymentModal';
+import ReminderButton from '../components/ReminderButton';
 import { LogoMark } from '../components/Logo';
 import { WEEKDAYS, currentYearMonth, formatDate, formatDateTime, money, monthLabel } from '../lib/format';
 
@@ -23,6 +24,34 @@ function RateCell({ line }) {
   return <span className="tabular-nums">{money(line.ratePerCopy)}</span>;
 }
 
+/** "Month | Billed | Paid | Pending", ending in a grand total — never a single rolled-up number. */
+function PreviousDuesTable({ breakdown }) {
+  if (!breakdown.length) return null;
+  const total = breakdown.reduce((n, d) => n + d.pending, 0);
+  return (
+    <div className="avoid-break border-t border-line px-6 py-5">
+      <h3 className="mb-1 text-sm font-semibold text-ink">Previous dues</h3>
+      <p className="mb-3 text-xs text-ink-muted">
+        Pending since {monthLabel(breakdown[0].year, breakdown[0].month)} ({breakdown.length} month{breakdown.length > 1 ? 's' : ''})
+      </p>
+      <table className="w-full max-w-md text-sm">
+        <thead><tr className="border-b border-line text-xs uppercase tracking-wide text-ink-muted"><th className="py-1.5 text-left">Month</th><th className="py-1.5 text-right">Billed</th><th className="py-1.5 text-right">Paid</th><th className="py-1.5 text-right">Pending</th></tr></thead>
+        <tbody>
+          {breakdown.map((d) => (
+            <tr key={d.billId} className="border-b border-line/60">
+              <td className="py-1.5">{monthLabel(d.year, d.month)}</td>
+              <td className="py-1.5 text-right tabular-nums text-ink-soft">{money(d.billed)}</td>
+              <td className="py-1.5 text-right tabular-nums text-success">{money(d.paid)}</td>
+              <td className="py-1.5 text-right font-medium tabular-nums">{money(d.pending)}</td>
+            </tr>
+          ))}
+        </tbody>
+        <tfoot><tr className="font-semibold"><td className="py-1.5" colSpan={3}>Total previous dues</td><td className="py-1.5 text-right tabular-nums">{money(total)}</td></tr></tfoot>
+      </table>
+    </div>
+  );
+}
+
 export default function CustomerBill() {
   const toast = useToast();
   const [params, setParams] = useSearchParams();
@@ -32,10 +61,11 @@ export default function CustomerBill() {
   const month = Number(params.get('month')) || now.month;
   const [tab, setTab] = useState('invoice');
   const [busy, setBusy] = useState('');
-  const [pay, setPay] = useState({ open: false, full: false });
+  const [payOpen, setPayOpen] = useState(false);
 
   const customers = useAllCustomers();
   const view = useApi(() => api.billView({ customer: customerId, year, month }), [customerId, year, month], { enabled: !!customerId });
+  const due = useApi(() => api.paymentsDue(customerId), [customerId], { enabled: !!customerId });
 
   const setQuery = (patch) => {
     const next = new URLSearchParams(params);
@@ -49,14 +79,14 @@ export default function CustomerBill() {
   // Show the saved bill when it exists, otherwise a live preview
   const doc = useMemo(() => (bill ? bill : v ? { ...v.computed, status: null } : null), [bill, v]);
   const customer = v?.customer;
-  const canPay = bill && bill.balance > 0 && !bill.carriedForward;
+  const dueBreakdown = doc?.dueBreakdown || [];
 
   const generate = async () => {
     setBusy('generate');
     try {
       await api.generateBill({ customer: customerId, year, month });
       toast.success(bill ? 'Bill refreshed' : `${monthLabel(year, month)} bill generated`);
-      await view.reload();
+      await Promise.all([view.reload(), due.reload()]);
     } catch (err) {
       toast.error(errorMessage(err));
     } finally {
@@ -124,13 +154,6 @@ export default function CustomerBill() {
                 <button className="btn-secondary btn-sm" onClick={generate} disabled={!!busy}><RefreshCw className="h-3.5 w-3.5" /> Refresh now</button>
               </div>
             )}
-            {bill?.carriedForward && bill.balance > 0 && (
-              <div className="flex flex-wrap items-center gap-3 rounded-xl border border-line bg-canvas px-4 py-3 text-sm text-ink-soft" role="status">
-                <HandCoins className="h-5 w-5 shrink-0 text-primary" aria-hidden />
-                <span className="flex-1">The balance of {money(bill.balance)} was carried into the {v.latestBill ? monthLabel(v.latestBill.year, v.latestBill.month) : 'latest'} bill. Record payments there.</span>
-                {v.latestBill && <Link className="btn-secondary btn-sm" to={`/billing/customer?customer=${customerId}&year=${v.latestBill.year}&month=${v.latestBill.month}`}>Open latest bill</Link>}
-              </div>
-            )}
           </div>
 
           {/* Actions */}
@@ -140,11 +163,18 @@ export default function CustomerBill() {
               {(!bill || !(bill.balance === 0 && bill.amountPaid > 0)) && (
                 <button className="btn-primary" onClick={generate} disabled={!!busy}><RefreshCw className={`h-4 w-4 ${busy === 'generate' ? 'animate-spin' : ''}`} /> {bill ? 'Refresh bill' : 'Generate bill'}</button>
               )}
-              <button className="btn-secondary" onClick={() => setPay({ open: true, full: false })} disabled={!canPay} title={!bill ? 'Generate the bill first' : bill.carriedForward ? 'Balance moved to a later bill' : bill.balance === 0 ? 'Already paid' : ''}><HandCoins className="h-4 w-4" /> Record payment</button>
+              <button className="btn-secondary" onClick={() => setPayOpen(true)} disabled={!due.data?.totalDue} title={!due.data?.totalDue ? 'No pending balance' : ''}><HandCoins className="h-4 w-4" /> Record payment</button>
               <button className="btn-secondary" onClick={() => window.print()}><Printer className="h-4 w-4" /> Print</button>
               <button className="btn-secondary" onClick={exportXlsx} disabled={busy === 'excel'}><Download className="h-4 w-4" /> Excel</button>
             </div>
           </div>
+
+          {due.data?.totalDue > 0 && (
+            <div className="no-print mb-4 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-line bg-surface px-4 py-3">
+              <span className="text-sm text-ink-soft">Send a reminder for <strong className="text-ink">{money(due.data.totalDue)}</strong> across {due.data.months.length} month{due.data.months.length > 1 ? 's' : ''}:</span>
+              <ReminderButton customerName={customer.name} phone={customer.phone} months={due.data.months} totalDue={due.data.totalDue} />
+            </div>
+          )}
 
           {/* Invoice (print area) */}
           <section className="card print-area overflow-hidden" aria-label="Bill">
@@ -176,45 +206,45 @@ export default function CustomerBill() {
               </div>
             </div>
 
-            {
-              <div className={tab === 'invoice' ? '' : 'hidden'}>
-                <div className="overflow-x-auto px-6">
-                  <table className="w-full text-sm">
-                    <thead><tr className="border-y border-line bg-canvas/70"><th className="th px-3">Publication</th><th className="th px-3 text-right">Copies</th><th className="th px-3 text-right">Rate / copy</th><th className="th px-3 text-right">Amount</th></tr></thead>
-                    <tbody>
-                      {doc.lineItems.length === 0 && <tr><td colSpan={4} className="px-3 py-8 text-center text-ink-muted">No subscriptions are active in this month.</td></tr>}
-                      {doc.lineItems.map((l) => (
-                        <tr key={l.publicationId || l.publication} className="border-b border-line/60">
-                          <td className="px-3 py-3">
-                            <div className="font-medium text-ink ml">{l.publicationName}</div>
-                            {(l.skippedCopies > 0 || l.extraCopies > 0) && (
-                              <div className="text-xs text-ink-muted">{l.skippedCopies > 0 && `${l.skippedCopies} skipped`}{l.skippedCopies > 0 && l.extraCopies > 0 && ' · '}{l.extraCopies > 0 && `${l.extraCopies} extra`}</div>
-                            )}
-                          </td>
-                          <td className="px-3 py-3 text-right tabular-nums">{l.copies}</td>
-                          <td className="px-3 py-3 text-right"><RateCell line={l} /></td>
-                          <td className="px-3 py-3 text-right font-medium tabular-nums">{money(l.amount)}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-
-                <div className="flex justify-end px-6 py-5">
-                  <dl className="avoid-break w-full max-w-sm space-y-2 text-sm">
-                    <div className="flex justify-between"><dt className="text-ink-soft">Current charges</dt><dd className="tabular-nums">{money(doc.currentCharges)}</dd></div>
-                    <div className="flex justify-between"><dt className="text-ink-soft">Previous due (carried forward)</dt><dd className="tabular-nums">{money(doc.previousDue)}</dd></div>
-                    <div className="flex justify-between border-t border-line pt-2 text-base font-bold"><dt>Total payable</dt><dd className="tabular-nums">{money(doc.totalPayable)}</dd></div>
-                    {bill && <div className="flex justify-between"><dt className="text-ink-soft">Amount paid</dt><dd className="tabular-nums text-success">− {money(bill.amountPaid)}</dd></div>}
-                    {bill && (
-                      <div className={`flex justify-between rounded-lg px-3 py-2 text-base font-bold ${bill.balance === 0 ? 'bg-success-soft text-success' : 'bg-danger-soft text-danger'}`}>
-                        <dt>{bill.balance === 0 ? 'Cleared' : 'Balance due'}</dt><dd className="tabular-nums">{money(bill.balance)}</dd>
-                      </div>
-                    )}
-                  </dl>
-                </div>
+            <div className={tab === 'invoice' ? '' : 'hidden'}>
+              <div className="overflow-x-auto px-6">
+                <table className="w-full text-sm">
+                  <thead><tr className="border-y border-line bg-canvas/70"><th className="th px-3">Publication</th><th className="th px-3 text-right">Copies</th><th className="th px-3 text-right">Rate / copy</th><th className="th px-3 text-right">Amount</th></tr></thead>
+                  <tbody>
+                    {doc.lineItems.length === 0 && <tr><td colSpan={4} className="px-3 py-8 text-center text-ink-muted">No subscriptions are active in this month.</td></tr>}
+                    {doc.lineItems.map((l) => (
+                      <tr key={l.publicationId || l.publication} className="border-b border-line/60">
+                        <td className="px-3 py-3">
+                          <div className="font-medium text-ink ml">{l.publicationName}</div>
+                          {(l.skippedCopies > 0 || l.extraCopies > 0) && (
+                            <div className="text-xs text-ink-muted">{l.skippedCopies > 0 && `${l.skippedCopies} skipped`}{l.skippedCopies > 0 && l.extraCopies > 0 && ' · '}{l.extraCopies > 0 && `${l.extraCopies} extra`}</div>
+                          )}
+                        </td>
+                        <td className="px-3 py-3 text-right tabular-nums">{l.copies}</td>
+                        <td className="px-3 py-3 text-right"><RateCell line={l} /></td>
+                        <td className="px-3 py-3 text-right font-medium tabular-nums">{money(l.amount)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
               </div>
-            }
+
+              <PreviousDuesTable breakdown={dueBreakdown} />
+
+              <div className="flex justify-end px-6 py-5">
+                <dl className="avoid-break w-full max-w-sm space-y-2 text-sm">
+                  <div className="flex justify-between"><dt className="text-ink-soft">Current charges</dt><dd className="tabular-nums">{money(doc.currentCharges)}</dd></div>
+                  <div className="flex justify-between"><dt className="text-ink-soft">Previous dues {dueBreakdown.length ? `(${dueBreakdown.length} mo, see above)` : ''}</dt><dd className="tabular-nums">{money(doc.previousDue)}</dd></div>
+                  <div className="flex justify-between border-t border-line pt-2 text-base font-bold"><dt>Total payable</dt><dd className="tabular-nums">{money(doc.totalPayable)}</dd></div>
+                  {bill && <div className="flex justify-between"><dt className="text-ink-soft">Paid this month</dt><dd className="tabular-nums text-success">− {money(bill.amountPaid)}</dd></div>}
+                  {bill && (
+                    <div className={`flex justify-between rounded-lg px-3 py-2 text-base font-bold ${bill.balance === 0 ? 'bg-success-soft text-success' : 'bg-danger-soft text-danger'}`}>
+                      <dt>{bill.balance === 0 ? 'This month cleared' : 'This month\'s balance'}</dt><dd className="tabular-nums">{money(bill.balance)}</dd>
+                    </div>
+                  )}
+                </dl>
+              </div>
+            </div>
 
             {/* Daily breakdown: shown on its tab, and always printed after the invoice */}
             <div className={tab === 'daily' ? 'border-t border-line' : 'hidden print:block print:border-t print:border-line print:break-before-page'}>
@@ -242,7 +272,7 @@ export default function CustomerBill() {
             <p className="border-t border-line px-6 py-3 text-center text-xs text-ink-muted">Thank you. Amounts are in Indian Rupees (₹). · {BRAND.name}</p>
           </section>
 
-          <PaymentModal open={pay.open} full={pay.full} bill={bill} customerName={customer.name} onClose={() => setPay({ open: false, full: false })} onSaved={() => view.reload()} />
+          <PaymentModal open={payOpen} customerId={customerId} customerName={customer.name} onClose={() => setPayOpen(false)} onSaved={() => { view.reload(); due.reload(); }} />
         </>
       )}
     </>

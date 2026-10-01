@@ -1,6 +1,6 @@
 import { Children, cloneElement, isValidElement, useId } from 'react';
 import { AlertCircle, CheckCircle2, ChevronLeft, ChevronRight, CircleDot, Inbox, RefreshCw } from 'lucide-react';
-import { MONTHS, currentYearMonth } from '../lib/format';
+import { MONTHS, currentYearMonth, money, monthRangeLabel } from '../lib/format';
 
 /* ---------- Form field: label + control + hint + error, wired for accessibility ---------- */
 export function Field({ label, error, hint, required, children, className = '' }) {
@@ -56,6 +56,20 @@ export function StatusBadge({ status }) {
   return (
     <Badge tone={s.tone}>
       <Icon className="h-3 w-3" aria-hidden /> {s.label}
+    </Badge>
+  );
+}
+
+/**
+ * Due-months badge: "₹1,450 due · 3 months (Jul–Sep 2026)". Colour tracks age — amber for
+ * 1 month pending, red for 2 or more — never colour alone (the month count is always in text).
+ */
+export function DueBadge({ months, due, size = 'md' }) {
+  if (!months?.length) return <Badge tone="success">No dues</Badge>;
+  const tone = months.length >= 2 ? 'danger' : 'warning';
+  return (
+    <Badge tone={tone} className={size === 'lg' ? 'text-sm font-semibold' : ''}>
+      {money(due)} due · {months.length} {months.length === 1 ? 'month' : 'months'} ({monthRangeLabel(months)})
     </Badge>
   );
 }

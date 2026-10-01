@@ -18,3 +18,11 @@ export const pageQuery = z.object({
   page: z.coerce.number().int().min(1).optional(),
   limit: z.coerce.number().int().min(1).max(500).optional(),
 });
+
+export const dateTimeStr = z.string().min(10, 'Enter a date and time'); // "YYYY-MM-DDTHH:mm" from <input type=datetime-local>
+export const registrationNumber = z
+  .string()
+  .trim()
+  .toUpperCase()
+  .transform((v) => v.replace(/\s+/g, '-'))
+  .refine((v) => /^KL-\d{1,2}-[A-Z]{1,2}-\d{4}$/.test(v), 'Enter a valid Kerala registration, e.g. KL-07-AB-1234');

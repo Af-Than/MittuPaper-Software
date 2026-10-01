@@ -4,8 +4,9 @@ import { Field } from './ui';
 import { api } from '../api';
 import { errorMessage } from '../api/client';
 import { useToast } from '../context/ToastContext';
+import { useApi } from '../hooks/useApi';
 
-const EMPTY = { name: '', phone: '', address: '', notes: '', active: true };
+const EMPTY = { name: '', phone: '', address: '', notes: '', active: true, employee: '', routeName: '' };
 
 /** Add / edit a customer. `customer` = existing record to edit, or null to create. */
 export default function CustomerFormModal({ open, customer, onClose, onSaved }) {
@@ -13,10 +14,15 @@ export default function CustomerFormModal({ open, customer, onClose, onSaved }) 
   const [form, setForm] = useState(EMPTY);
   const [errors, setErrors] = useState({});
   const [busy, setBusy] = useState(false);
+  const employees = useApi(() => api.employees({ active: 'true', limit: 100 }), [], { enabled: open });
 
   useEffect(() => {
     if (open) {
-      setForm(customer ? { name: customer.name, phone: customer.phone, address: customer.address, notes: customer.notes || '', active: customer.active } : EMPTY);
+      setForm(
+        customer
+          ? { name: customer.name, phone: customer.phone, address: customer.address, notes: customer.notes || '', active: customer.active, employee: customer.employee?._id || customer.employee || '', routeName: customer.routeName || '' }
+          : EMPTY
+      );
       setErrors({});
     }
   }, [open, customer]);
@@ -34,7 +40,7 @@ export default function CustomerFormModal({ open, customer, onClose, onSaved }) 
 
     setBusy(true);
     try {
-      const body = { ...form, name: form.name.trim(), phone: form.phone.trim(), address: form.address.trim(), notes: form.notes.trim() };
+      const body = { ...form, name: form.name.trim(), phone: form.phone.trim(), address: form.address.trim(), notes: form.notes.trim(), employee: form.employee || null, routeName: form.routeName.trim() };
       const saved = customer ? await api.updateCustomer(customer._id, body) : await api.createCustomer(body);
       toast.success(customer ? 'Customer updated' : `${saved.name} added`);
       onSaved?.(saved);
@@ -72,6 +78,17 @@ export default function CustomerFormModal({ open, customer, onClose, onSaved }) 
         <Field label="Notes" hint="Optional: gate instructions, preferred time, etc.">
           <textarea className="input ml" rows={2} value={form.notes} onChange={set('notes')} maxLength={500} />
         </Field>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <Field label="Delivery employee" hint="Optional — for the daily delivery sheet">
+            <select className="input" value={form.employee} onChange={set('employee')}>
+              <option value="">Not assigned</option>
+              {(employees.data?.items || []).map((e) => <option key={e._id} value={e._id}>{e.name}</option>)}
+            </select>
+          </Field>
+          <Field label="Route name" hint="Optional, e.g. 'Pattom Route'">
+            <input className="input ml" value={form.routeName} onChange={set('routeName')} maxLength={80} />
+          </Field>
+        </div>
         {customer && (
           <label className="flex items-center gap-2 text-sm text-ink">
             <input type="checkbox" className="h-4 w-4 rounded border-line accent-[rgb(20_74_159)]" checked={form.active} onChange={set('active')} />

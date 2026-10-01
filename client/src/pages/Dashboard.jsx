@@ -162,7 +162,9 @@ export default function Dashboard() {
                     <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary-50 text-xs font-semibold text-primary" aria-hidden>{initials(d.name)}</span>
                     <span className="min-w-0 flex-1">
                       <span className="block truncate font-medium text-ink">{d.name}</span>
-                      <span className="block text-xs text-ink-muted">as of {monthLabel(d.year, d.month)} bill</span>
+                      <span className="block text-xs text-ink-muted">
+                        Pending since {monthLabel(d.year, d.month)} ({d.monthsDue} month{d.monthsDue > 1 ? 's' : ''})
+                      </span>
                     </span>
                     <span className="font-semibold tabular-nums text-danger">{money(d.balance)}</span>
                   </Link>

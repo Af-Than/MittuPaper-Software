@@ -8,11 +8,15 @@ const customerSchema = new mongoose.Schema(
     phone: { type: String, required: true, trim: true, match: /^[6-9]\d{9}$/ },
     notes: { type: String, trim: true, default: '', maxlength: 500 },
     active: { type: Boolean, default: true },
+    // Delivery routing (optional) — who delivers to this customer, and the named route/area.
+    employee: { type: mongoose.Schema.Types.ObjectId, ref: 'Employee', default: null },
+    routeName: { type: String, trim: true, default: '', maxlength: 80 },
   },
   { timestamps: true }
 );
 
 customerSchema.index({ name: 1 });
 customerSchema.index({ active: 1 });
+customerSchema.index({ employee: 1 });
 
 export const Customer = mongoose.model('Customer', customerSchema);

@@ -1,11 +1,14 @@
 import { createContext, useContext, useEffect, useState } from 'react';
 import { Link, NavLink, Outlet, useLocation } from 'react-router-dom';
 import {
-  CalendarRange, ChevronRight, FileText, Files, History, LayoutDashboard, LogOut, Menu, Newspaper, Users, Wallet, X,
+  Bike, CalendarRange, ChevronRight, FileSpreadsheet, FileText, Files, Fuel, History, LayoutDashboard, LogOut,
+  Menu, Newspaper, Receipt, Settings as SettingsIcon, TrendingUp, Truck, Users, Wallet, Wrench, X,
 } from 'lucide-react';
 import Logo from './Logo';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
+import NotificationsBell from './NotificationsBell';
+import GlobalSearch from './GlobalSearch';
 import { initials } from '../lib/format';
 
 const NAV = [
@@ -19,6 +22,18 @@ const NAV = [
   { group: 'Accounts' },
   { to: '/payments', label: 'Payments', icon: Wallet },
   { to: '/activity', label: 'Activity & Logins', icon: History },
+  { group: 'Expenses' },
+  { to: '/expenses', label: 'Expense Dashboard', icon: LayoutDashboard },
+  { to: '/expenses/employees', label: 'Employees', icon: Users },
+  { to: '/expenses/vehicles', label: 'Vehicles', icon: Bike },
+  { to: '/expenses/fuel', label: 'Fuel Log', icon: Fuel },
+  { to: '/expenses/repairs', label: 'Repairs', icon: Wrench },
+  { to: '/expenses/salaries', label: 'Salaries', icon: Receipt },
+  { to: '/expenses/ledger', label: 'Expense Ledger', icon: FileSpreadsheet },
+  { to: '/expenses/profit-loss', label: 'Profit & Loss', icon: TrendingUp },
+  { group: 'More' },
+  { to: '/delivery-sheet', label: 'Delivery Sheet', icon: Truck },
+  { to: '/settings', label: 'Settings', icon: SettingsIcon },
 ];
 
 const CRUMBS = {
@@ -30,6 +45,16 @@ const CRUMBS = {
   '/billing/yearly': [['Billing'], ['Yearly Report']],
   '/payments': [['Payments']],
   '/activity': [['Activity & Logins']],
+  '/expenses': [['Expenses'], ['Dashboard']],
+  '/expenses/employees': [['Expenses'], ['Employees']],
+  '/expenses/vehicles': [['Expenses'], ['Vehicles']],
+  '/expenses/fuel': [['Expenses'], ['Fuel Log']],
+  '/expenses/repairs': [['Expenses'], ['Repairs']],
+  '/expenses/salaries': [['Expenses'], ['Salaries']],
+  '/expenses/ledger': [['Expenses'], ['Expense Ledger']],
+  '/expenses/profit-loss': [['Expenses'], ['Profit & Loss']],
+  '/delivery-sheet': [['Delivery Sheet']],
+  '/settings': [['Settings']],
 };
 
 // Pages with a dynamic title (e.g. customer name) push it into the breadcrumb via this hook
@@ -46,6 +71,8 @@ function Breadcrumb({ extra }) {
   const { pathname } = useLocation();
   let trail = CRUMBS[pathname];
   if (!trail && pathname.startsWith('/customers/')) trail = [['Customers', '/customers'], [extra || 'Customer']];
+  if (!trail && pathname.startsWith('/expenses/employees/')) trail = [['Expenses', '/expenses'], ['Employees', '/expenses/employees'], [extra || 'Employee']];
+  if (!trail && pathname.startsWith('/expenses/vehicles/')) trail = [['Expenses', '/expenses'], ['Vehicles', '/expenses/vehicles'], [extra || 'Vehicle']];
   if (!trail) return null;
   return (
     <nav aria-label="Breadcrumb" className="no-print mb-3 flex flex-wrap items-center gap-1 text-xs text-ink-muted">
@@ -111,7 +138,11 @@ export default function AppLayout() {
             </button>
             <Link to="/" aria-label="Go to dashboard"><Logo /></Link>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="hidden flex-1 justify-center px-4 md:flex">
+            <GlobalSearch />
+          </div>
+          <div className="flex items-center gap-2 sm:gap-3">
+            <NotificationsBell />
             <div className="hidden text-right leading-tight sm:block">
               <div className="text-sm font-semibold">{admin?.name}</div>
               <div className="text-xs text-primary-200">Administrator</div>

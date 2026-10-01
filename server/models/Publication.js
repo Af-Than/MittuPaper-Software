@@ -4,7 +4,8 @@ import mongoose from 'mongoose';
 // so appending a new entry never alters past bills.
 const rateSchema = new mongoose.Schema(
   {
-    ratePerCopy: { type: Number, required: true, min: 0, validate: Number.isInteger }, // paise
+    ratePerCopy: { type: Number, required: true, min: 0, validate: Number.isInteger }, // paise — what the customer is charged
+    agencyCostPerCopy: { type: Number, default: 0, min: 0, validate: Number.isInteger }, // paise — what the agency pays the publisher
     effectiveFrom: { type: Date, required: true },
     setBy: { type: String, default: '' },
     createdAt: { type: Date, default: Date.now },

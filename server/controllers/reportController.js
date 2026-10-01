@@ -2,6 +2,7 @@ import { AuditLog, Bill, Customer, LoginLog } from '../models/index.js';
 import { dashboardSummary, yearlyReport } from '../services/reports.js';
 import { customerBillWorkbook, monthlyWorkbook, sendWorkbook, yearlyWorkbook } from '../services/excel.js';
 import { billFilter } from './billController.js';
+import { dueSummaryMap, liveDueBreakdown } from '../services/billingService.js';
 import { notFound, paging } from '../utils/http.js';
 
 export async function dashboard(_req, res) {
@@ -41,6 +42,7 @@ export async function exportBill(req, res) {
   ]);
   if (!customer) throw notFound('Customer not found');
   if (!bill) throw notFound('Generate the bill first, then download it');
+  bill.dueBreakdown = await liveDueBreakdown(customerId, Number(year), Number(month), { excludeBillId: bill._id });
   const wb = customerBillWorkbook(bill, customer);
   await sendWorkbook(res, wb, `bill-${year}-${String(month).padStart(2, '0')}-${String(customer._id).slice(-6)}.xlsx`);
 }
@@ -50,6 +52,8 @@ export async function exportMonthly(req, res) {
   const filter = await billFilter(req.query);
   const bills = await Bill.find(filter).select('-days').populate('customer', 'name phone').lean();
   bills.sort((a, b) => (a.customer?.name || '').localeCompare(b.customer?.name || ''));
+  const dueMap = await dueSummaryMap(bills.map((b) => b.customer?._id).filter(Boolean));
+  for (const b of bills) b.dueMonths = dueMap.get(String(b.customer?._id))?.months || [];
   await sendWorkbook(res, monthlyWorkbook(bills, year, month), `monthly-bills-${year}-${String(month).padStart(2, '0')}.xlsx`);
 }
 

@@ -12,6 +12,18 @@ import MonthlyBills from './pages/MonthlyBills';
 import YearlyReport from './pages/YearlyReport';
 import Payments from './pages/Payments';
 import Activity from './pages/Activity';
+import ExpenseDashboard from './pages/ExpenseDashboard';
+import Employees from './pages/Employees';
+import EmployeeDetail from './pages/EmployeeDetail';
+import Vehicles from './pages/Vehicles';
+import VehicleDetail from './pages/VehicleDetail';
+import FuelLog from './pages/FuelLog';
+import Repairs from './pages/Repairs';
+import Salaries from './pages/Salaries';
+import ExpenseLedger from './pages/ExpenseLedger';
+import ProfitLoss from './pages/ProfitLoss';
+import DeliverySheet from './pages/DeliverySheet';
+import Settings from './pages/Settings';
 
 function Protected({ children }) {
   const { admin, loading } = useAuth();
@@ -41,6 +53,18 @@ export default function App() {
         <Route path="billing/yearly" element={<YearlyReport />} />
         <Route path="payments" element={<Payments />} />
         <Route path="activity" element={<Activity />} />
+        <Route path="expenses" element={<ExpenseDashboard />} />
+        <Route path="expenses/employees" element={<Employees />} />
+        <Route path="expenses/employees/:id" element={<EmployeeDetail />} />
+        <Route path="expenses/vehicles" element={<Vehicles />} />
+        <Route path="expenses/vehicles/:id" element={<VehicleDetail />} />
+        <Route path="expenses/fuel" element={<FuelLog />} />
+        <Route path="expenses/repairs" element={<Repairs />} />
+        <Route path="expenses/salaries" element={<Salaries />} />
+        <Route path="expenses/ledger" element={<ExpenseLedger />} />
+        <Route path="expenses/profit-loss" element={<ProfitLoss />} />
+        <Route path="delivery-sheet" element={<DeliverySheet />} />
+        <Route path="settings" element={<Settings />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Route>
     </Routes>

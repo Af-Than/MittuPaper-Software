@@ -1,5 +1,5 @@
 import { Customer, Subscription } from '../models/index.js';
-import { deleteCustomerCascade, latestBillMap } from '../services/billingService.js';
+import { deleteCustomerCascade, dueSummaryMap } from '../services/billingService.js';
 import { escapeRegex, notFound, paging } from '../utils/http.js';
 import { audit } from '../utils/audit.js';
 
@@ -16,9 +16,12 @@ export async function list(req, res) {
   }
   if (filter === 'active') query.active = true;
   if (filter === 'inactive') query.active = false;
-  if (filter === 'dues') {
-    const latest = await latestBillMap();
-    query._id = { $in: [...latest].filter(([, l]) => l.balance > 0).map(([id]) => id) };
+
+  if (filter === 'dues' || filter === 'overdue') {
+    const allIds = await Customer.find(query).distinct('_id');
+    const map = await dueSummaryMap(allIds);
+    const minAge = filter === 'overdue' ? 2 : 1;
+    query._id = { $in: allIds.filter((id) => (map.get(String(id))?.oldest?.ageInMonths || 0) >= minAge) };
   }
 
   const [total, customers] = await Promise.all([
@@ -27,34 +30,40 @@ export async function list(req, res) {
   ]);
 
   const ids = customers.map((c) => c._id);
-  const [subs, latest] = await Promise.all([
+  const [subs, dueMap] = await Promise.all([
     Subscription.find({ customer: { $in: ids }, ...activeSubFilter() }).populate('publication', 'name type').lean(),
-    latestBillMap(ids),
+    dueSummaryMap(ids),
   ]);
 
-  const items = customers.map((c) => ({
-    ...c,
-    subscriptions: subs
-      .filter((s) => String(s.customer) === String(c._id) && s.publication)
-      .map((s) => ({ id: s._id, name: s.publication.name, type: s.publication.type })),
-    due: latest.get(String(c._id))?.balance || 0,
-  }));
+  const items = customers.map((c) => {
+    const d = dueMap.get(String(c._id)) || { months: [], due: 0, oldest: null };
+    return {
+      ...c,
+      subscriptions: subs
+        .filter((s) => String(s.customer) === String(c._id) && s.publication)
+        .map((s) => ({ id: s._id, name: s.publication.name, type: s.publication.type })),
+      due: d.due,
+      dueMonths: d.months,
+      oldestDue: d.oldest,
+    };
+  });
   res.json({ items, total, page, pages: Math.max(1, Math.ceil(total / limit)) });
 }
 
 export async function get(req, res) {
   const customer = await Customer.findById(req.params.id).lean();
   if (!customer) throw notFound('Customer not found');
-  const [subscriptions, latest] = await Promise.all([
+  const [subscriptions, dueMap] = await Promise.all([
     Subscription.find({ customer: customer._id }).populate('publication', 'name type frequency active').sort({ startDate: -1 }).lean(),
-    latestBillMap([customer._id]),
+    dueSummaryMap([customer._id]),
   ]);
-  const l = latest.get(String(customer._id));
+  const d = dueMap.get(String(customer._id)) || { months: [], due: 0, oldest: null };
   res.json({
     ...customer,
     subscriptions: subscriptions.filter((s) => s.publication),
-    due: l?.balance || 0,
-    latestBill: l ? { id: l.billId, year: l.year, month: l.month } : null,
+    due: d.due,
+    dueMonths: d.months,
+    oldestDue: d.oldest,
   });
 }
 

@@ -1,16 +1,18 @@
 import { useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
-import { ExternalLink, MapPin, Pencil, Phone, Plus, StickyNote, Trash2, FileText, Repeat } from 'lucide-react';
+import { ExternalLink, HandCoins, MapPin, Pencil, Phone, Plus, StickyNote, Trash2, FileText, Repeat } from 'lucide-react';
 import { api } from '../api';
 import { errorMessage } from '../api/client';
 import { useApi } from '../hooks/useApi';
 import { useToast } from '../context/ToastContext';
 import { useCrumb } from '../components/AppLayout';
-import { Badge, EmptyState, ErrorState, Skeleton, StatusBadge, TableSkeleton } from '../components/ui';
+import { Badge, DueBadge, EmptyState, ErrorState, Skeleton, StatusBadge, TableSkeleton } from '../components/ui';
 import ConfirmDialog from '../components/ConfirmDialog';
 import CustomerFormModal from '../components/CustomerFormModal';
 import SubscriptionModal from '../components/SubscriptionModal';
 import DeliveryCalendar from '../components/DeliveryCalendar';
+import PaymentModal from '../components/PaymentModal';
+import ReminderButton from '../components/ReminderButton';
 import { describeWeekdays, formatDate, initials, money, monthLabel } from '../lib/format';
 
 const MODE_LABEL = { cash: 'Cash', upi: 'UPI', other: 'Other' };
@@ -28,6 +30,7 @@ export default function CustomerDetail() {
   const [subModal, setSubModal] = useState({ open: false, sub: null });
   const [subToDelete, setSubToDelete] = useState(null);
   const [deleting, setDeleting] = useState(false);
+  const [payOpen, setPayOpen] = useState(false);
 
   useCrumb(customer?.name);
 
@@ -81,16 +84,28 @@ export default function CustomerDetail() {
           </div>
           <div className="flex flex-col items-end gap-3">
             <div className="text-right">
-              <div className="text-xs uppercase tracking-wide text-ink-muted">Current due</div>
-              <div className={`text-2xl font-bold tabular-nums ${customer.due > 0 ? 'text-danger' : 'text-success'}`}>{money(customer.due)}</div>
+              <div className="mb-1 text-xs uppercase tracking-wide text-ink-muted">Current due</div>
+              <DueBadge months={customer.dueMonths} due={customer.due} size="lg" />
             </div>
             <div className="flex flex-wrap justify-end gap-2">
+              {customer.due > 0 && <button className="btn-primary btn-sm" onClick={() => setPayOpen(true)}><HandCoins className="h-3.5 w-3.5" /> Record payment</button>}
               <Link className="btn-secondary btn-sm" to={`/billing/customer?customer=${id}`}><FileText className="h-3.5 w-3.5" /> View bill</Link>
               <button className="btn-secondary btn-sm" onClick={() => setEditing(true)}><Pencil className="h-3.5 w-3.5" /> Edit</button>
               <button className="btn-secondary btn-sm text-danger hover:bg-danger-soft" onClick={() => setDeleting(true)}><Trash2 className="h-3.5 w-3.5" /> Delete</button>
             </div>
           </div>
         </div>
+        {customer.dueMonths?.length > 0 && (
+          <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-line pt-4">
+            <div className="flex flex-wrap items-center gap-2 text-sm">
+              <span className="text-ink-muted">Dues timeline:</span>
+              {customer.dueMonths.map((m) => (
+                <Badge key={m.billId} tone={m.ageInMonths >= 2 ? 'danger' : 'warning'}>{monthLabel(m.year, m.month)} · {money(m.pending)}</Badge>
+              ))}
+            </div>
+            <ReminderButton customerName={customer.name} phone={customer.phone} months={customer.dueMonths} totalDue={customer.due} />
+          </div>
+        )}
       </section>
 
       {/* Subscriptions */}
@@ -159,7 +174,7 @@ export default function CustomerDetail() {
                       <td className="td font-medium">{monthLabel(b.year, b.month)}</td>
                       <td className="td text-right tabular-nums">{money(b.totalPayable)}</td>
                       <td className="td text-right tabular-nums">{money(b.balance)}</td>
-                      <td className="td"><div className="flex flex-wrap items-center gap-1"><StatusBadge status={b.status} />{b.carriedForward && b.balance > 0 && <Badge>Carried</Badge>}</div></td>
+                      <td className="td"><StatusBadge status={b.status} /></td>
                       <td className="td"><Link className="text-primary hover:text-primary-800" to={`/billing/customer?customer=${id}&year=${b.year}&month=${b.month}`} aria-label={`Open ${monthLabel(b.year, b.month)} bill`}><ExternalLink className="h-4 w-4" /></Link></td>
                     </tr>
                   ))}
@@ -181,7 +196,10 @@ export default function CustomerDetail() {
                   {payments.data.items.map((p) => (
                     <tr key={p._id} className="border-b border-line/60 last:border-0">
                       <td className="td whitespace-nowrap">{formatDate(p.date)}</td>
-                      <td className="td">{p.bill ? monthLabel(p.bill.year, p.bill.month) : '—'}</td>
+                      <td className="td">
+                        {p.bill ? monthLabel(p.bill.year, p.bill.month) : '—'}
+                        {p.allocations?.length > 1 && <span className="text-xs text-ink-muted"> +{p.allocations.length - 1} more</span>}
+                      </td>
                       <td className="td text-right font-medium tabular-nums text-success">{money(p.amount)}</td>
                       <td className="td"><Badge>{MODE_LABEL[p.mode]}</Badge></td>
                     </tr>
@@ -197,6 +215,7 @@ export default function CustomerDetail() {
       <SubscriptionModal open={subModal.open} customerId={id} subscription={subModal.sub} publications={availablePubs} onClose={() => setSubModal({ open: false, sub: null })} onSaved={refreshAll} />
       <ConfirmDialog open={!!subToDelete} title="Remove subscription?" message={<>Stop delivering <strong className="text-ink ml">{subToDelete?.publication.name}</strong> to this customer? Bills already generated are not changed, but refreshing them will exclude this subscription. To keep past billing intact, edit the subscription and set an end date instead.</>} confirmLabel="Remove" onConfirm={deleteSub} onClose={() => setSubToDelete(null)} />
       <ConfirmDialog open={deleting} title="Delete customer?" message={<>This permanently deletes <strong className="text-ink ml">{customer.name}</strong> with all subscriptions, delivery history, bills and payments.</>} confirmLabel="Delete customer" onConfirm={deleteCustomer} onClose={() => setDeleting(false)} />
+      <PaymentModal open={payOpen} customerId={id} customerName={customer.name} onClose={() => setPayOpen(false)} onSaved={refreshAll} />
     </div>
   );
 }

@@ -18,6 +18,13 @@ const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 const STATUS_LABEL = { paid: 'Paid', partial: 'Partial', unpaid: 'Unpaid' };
 
 const rupees = (paise) => (paise || 0) / 100;
+/** Shift a stored-UTC Date forward to IST wall-clock for display-only spreadsheet cells. */
+const toIST = (date) => new Date(new Date(date).getTime() + (5 * 60 + 30) * 60000);
+const CATEGORY_LABEL = {
+  service: 'Service', tyre: 'Tyre', brake: 'Brake', engine: 'Engine', battery: 'Battery', electrical: 'Electrical', accident: 'Accident', other: 'Other',
+  rent: 'Rent', electricity: 'Electricity', 'phone-internet': 'Phone/Internet', 'stationery-packing': 'Stationery/Packing', 'publisher-payment': 'Publisher payment', miscellaneous: 'Miscellaneous',
+  fuel: 'Fuel', repair: 'Repair', salary: 'Salary',
+};
 
 function newWorkbook() {
   const wb = new ExcelJS.Workbook();
@@ -158,6 +165,31 @@ export function customerBillWorkbook(bill, customer) {
   const last = r - 1;
   r++; // spacer
 
+  // ---- Previous dues, broken down by month (never a single rolled-up number) ----
+  if (bill.dueBreakdown && bill.dueBreakdown.length) {
+    ws.mergeCells(r, 1, r, 4);
+    const dueTitle = ws.getCell(r, 1);
+    dueTitle.value = `Previous dues — pending since ${monthLabel(bill.dueBreakdown[0].year, bill.dueBreakdown[0].month)} (${bill.dueBreakdown.length} month${bill.dueBreakdown.length > 1 ? 's' : ''})`;
+    dueTitle.font = { name: 'Calibri', bold: true, color: { argb: PRIMARY_DARK } };
+    r++;
+    const dueHead = ws.getRow(r);
+    dueHead.values = ['Month', 'Billed', 'Paid', 'Pending'];
+    headerRow(dueHead);
+    r++;
+    const dueFirst = r;
+    for (const d of bill.dueBreakdown) {
+      const row = ws.getRow(r);
+      row.values = [monthLabel(d.year, d.month), rupees(d.billed), rupees(d.paid), rupees(d.pending)];
+      bodyRow(row, [2, 3, 4], [1]);
+      r++;
+    }
+    const dueLast = r - 1;
+    const dueTotal = ws.getRow(r);
+    dueTotal.values = ['Total previous dues', '', '', { formula: `SUM(D${dueFirst}:D${dueLast})`, result: rupees(bill.previousDue) }];
+    totalsRow(dueTotal, [4]);
+    r += 2;
+  }
+
   const summary = (label, value, opts = {}) => {
     ws.mergeCells(r, 1, r, 3);
     const lc = ws.getCell(r, 1);
@@ -179,7 +211,7 @@ export function customerBillWorkbook(bill, customer) {
   };
 
   const cur = summary('Current charges', { formula: `SUM(D${first}:D${last})`, result: rupees(bill.currentCharges) });
-  const prev = summary('Previous due (carried forward)', rupees(bill.previousDue));
+  const prev = summary(bill.dueBreakdown?.length ? 'Previous dues (see breakdown above)' : 'Previous due', rupees(bill.previousDue));
   const tot = summary('Total payable', { formula: `D${cur}+D${prev}`, result: rupees(bill.totalPayable) }, { bold: true, strong: true });
   const paid = summary('Amount paid', rupees(bill.amountPaid));
   summary('Balance due', { formula: `MAX(0,D${tot}-D${paid})`, result: rupees(bill.balance) }, { bold: true, strong: true });
@@ -243,21 +275,22 @@ export function monthlyWorkbook(bills, year, month) {
   const ws = wb.addWorksheet(`${MONTH_NAMES[month - 1].slice(0, 3)} ${year}`);
   ws.columns = [
     { width: 6 }, { width: 30 }, { width: 14 }, { width: 16 }, { width: 16 },
-    { width: 16 }, { width: 16 }, { width: 16 }, { width: 12 },
+    { width: 16 }, { width: 16 }, { width: 16 }, { width: 12 }, { width: 26 },
   ];
-  title(ws, 'Monthly Bills — All Customers', label, 9);
+  title(ws, 'Monthly Bills — All Customers', label, 10);
   const head = ws.getRow(4);
-  head.values = ['#', 'Customer', 'Phone', 'Current charges', 'Previous due', 'Total payable', 'Paid', 'Balance', 'Status'];
+  head.values = ['#', 'Customer', 'Phone', 'Current charges', 'Previous due', 'Total payable', 'Paid', 'Balance', 'Status', 'Due months'];
   headerRow(head);
   let r = 5;
   bills.forEach((b, i) => {
     const row = ws.getRow(r);
+    const dueMonths = (b.dueMonths || []).map((d) => MONTH_NAMES[d.month - 1].slice(0, 3) + ' ' + d.year).join(', ');
     row.values = [
       i + 1, b.customer?.name || '', b.customer?.phone || '',
       rupees(b.currentCharges), rupees(b.previousDue), rupees(b.totalPayable),
-      rupees(b.amountPaid), rupees(b.balance), STATUS_LABEL[b.status] || b.status,
+      rupees(b.amountPaid), rupees(b.balance), STATUS_LABEL[b.status] || b.status, dueMonths || '—',
     ];
-    bodyRow(row, [4, 5, 6, 7, 8], [2]);
+    bodyRow(row, [4, 5, 6, 7, 8], [2, 10]);
     row.getCell(1).alignment = { horizontal: 'center' };
     row.getCell(9).alignment = { horizontal: 'center' };
     row.getCell(9).font = {
@@ -352,5 +385,157 @@ export function yearlyWorkbook(report) {
   totalsRow(t, moneyCols);
   ws.views = [{ state: 'frozen', xSplit: 1, ySplit: 5 }];
   printSetup(ws, { landscape: true, titleRows: '4:5' });
+  return wb;
+}
+
+/* ================= Expense module exports ================= */
+
+/** Fuel log. */
+export function fuelLogWorkbook(entries, filterLabel) {
+  const wb = newWorkbook();
+  const ws = wb.addWorksheet('Fuel Log');
+  ws.columns = [{ width: 18 }, { width: 16 }, { width: 18 }, { width: 10 }, { width: 14 }, { width: 14 }, { width: 10 }, { width: 18 }, { width: 10 }];
+  title(ws, 'Fuel Log', filterLabel, 9);
+  const head = ws.getRow(4);
+  head.values = ['Date/time (IST)', 'Vehicle', 'Employee', 'Litres', 'Price/litre', 'Amount', 'Odometer', 'Station', 'Full tank'];
+  headerRow(head);
+  let r = 5;
+  for (const e of entries) {
+    const row = ws.getRow(r);
+    row.values = [toIST(e.fuelledAt), e.vehicle?.registrationNumber || '', e.employee?.name || '', e.litres, rupees(e.pricePerLitre), rupees(e.amount), e.odometer, e.station, e.fullTank ? 'Yes' : 'No'];
+    bodyRow(row, [5, 6], [2, 3, 8]);
+    row.getCell(1).numFmt = 'dd-mmm-yyyy hh:mm AM/PM';
+    r++;
+  }
+  const last = r - 1;
+  const t = ws.getRow(r);
+  t.values = ['Total', '', '', { formula: entries.length ? `SUM(D5:D${last})` : '0', result: entries.reduce((n, e) => n + e.litres, 0) }, '', { formula: entries.length ? `SUM(F5:F${last})` : '0', result: rupees(entries.reduce((n, e) => n + e.amount, 0)) }, '', '', ''];
+  totalsRow(t, [6]);
+  ws.views = [{ state: 'frozen', ySplit: 4 }];
+  printSetup(ws, { landscape: true, titleRows: '4:4' });
+  return wb;
+}
+
+/** Repairs log. */
+export function repairsLogWorkbook(entries, filterLabel) {
+  const wb = newWorkbook();
+  const ws = wb.addWorksheet('Repairs Log');
+  ws.columns = [{ width: 18 }, { width: 16 }, { width: 14 }, { width: 36 }, { width: 18 }, { width: 14 }, { width: 14 }, { width: 14 }, { width: 12 }];
+  title(ws, 'Repairs Log', filterLabel, 9);
+  const head = ws.getRow(4);
+  head.values = ['Date/time (IST)', 'Vehicle', 'Category', 'Description', 'Workshop', 'Parts', 'Labour', 'Total', 'Status'];
+  headerRow(head);
+  let r = 5;
+  for (const e of entries) {
+    const row = ws.getRow(r);
+    row.values = [toIST(e.repairedAt), e.vehicle?.registrationNumber || '', CATEGORY_LABEL[e.category] || e.category, e.description, e.workshop, rupees(e.partsCost), rupees(e.labourCost), rupees(e.total), e.status === 'pending' ? 'Pending' : 'Completed'];
+    bodyRow(row, [6, 7, 8], [2, 4, 5]);
+    row.getCell(1).numFmt = 'dd-mmm-yyyy hh:mm AM/PM';
+    r++;
+  }
+  const last = r - 1;
+  const t = ws.getRow(r);
+  t.values = ['Total', '', '', '', '', { formula: entries.length ? `SUM(F5:F${last})` : '0', result: rupees(entries.reduce((n, e) => n + e.partsCost, 0)) }, { formula: entries.length ? `SUM(G5:G${last})` : '0', result: rupees(entries.reduce((n, e) => n + e.labourCost, 0)) }, { formula: entries.length ? `SUM(H5:H${last})` : '0', result: rupees(entries.reduce((n, e) => n + e.total, 0)) }, ''];
+  totalsRow(t, [6, 7, 8]);
+  ws.views = [{ state: 'frozen', ySplit: 4 }];
+  printSetup(ws, { landscape: true, titleRows: '4:4' });
+  return wb;
+}
+
+/** Salary register for a month or a year. */
+export function salaryRegisterWorkbook(payments, label) {
+  const wb = newWorkbook();
+  const ws = wb.addWorksheet('Salary Register');
+  ws.columns = [{ width: 24 }, { width: 14 }, { width: 14 }, { width: 14 }, { width: 14 }, { width: 14 }, { width: 14 }, { width: 20 }, { width: 10 }];
+  title(ws, 'Salary Register', label, 9);
+  const head = ws.getRow(4);
+  head.values = ['Employee', 'Month', 'Base salary', 'Bonus', 'Deductions', 'Advance recovered', 'Net paid', 'Paid on (IST)', 'Mode'];
+  headerRow(head);
+  let r = 5;
+  for (const p of payments) {
+    const row = ws.getRow(r);
+    row.values = [p.employee?.name || '', monthLabel(p.forYear, p.forMonth), rupees(p.baseSalary), rupees(p.bonus), rupees(p.deductions), rupees(p.advanceRecovered), rupees(p.netPaid), toIST(p.paidOn), p.mode.toUpperCase()];
+    bodyRow(row, [3, 4, 5, 6, 7], [1]);
+    row.getCell(8).numFmt = 'dd-mmm-yyyy hh:mm AM/PM';
+    r++;
+  }
+  const last = r - 1;
+  const t = ws.getRow(r);
+  const sum = (col, field) => ({ formula: payments.length ? `SUM(${col}5:${col}${last})` : '0', result: rupees(payments.reduce((n, p) => n + p[field], 0)) });
+  t.values = ['Total', '', sum('C', 'baseSalary'), sum('D', 'bonus'), sum('E', 'deductions'), sum('F', 'advanceRecovered'), sum('G', 'netPaid'), '', ''];
+  totalsRow(t, [3, 4, 5, 6, 7]);
+  ws.views = [{ state: 'frozen', ySplit: 4 }];
+  printSetup(ws, { landscape: true, titleRows: '4:4' });
+  return wb;
+}
+
+/** Unified expense ledger across fuel/repair/salary/other. */
+export function ledgerWorkbook(rows, filterLabel) {
+  const wb = newWorkbook();
+  const ws = wb.addWorksheet('Expense Ledger');
+  ws.columns = [{ width: 18 }, { width: 12 }, { width: 44 }, { width: 16 }, { width: 18 }, { width: 14 }, { width: 18 }];
+  title(ws, 'Expense Ledger', filterLabel, 7);
+  const head = ws.getRow(4);
+  head.values = ['Date', 'Type', 'Description', 'Vehicle/Employee', 'Amount', 'Recorded', 'Created at (IST)'];
+  headerRow(head);
+  let r = 5;
+  for (const row of rows) {
+    const xl = ws.getRow(r);
+    xl.values = [new Date(row.date), CATEGORY_LABEL[row.type] || row.type, row.description, row.vehicle || row.employee || '', rupees(row.amount), '', toIST(row.createdAt)];
+    bodyRow(xl, [5], [3, 4]);
+    xl.getCell(1).numFmt = 'dd-mmm-yyyy';
+    xl.getCell(7).numFmt = 'dd-mmm-yyyy hh:mm AM/PM';
+    r++;
+  }
+  const last = r - 1;
+  const t = ws.getRow(r);
+  t.values = ['Total', '', '', '', { formula: rows.length ? `SUM(E5:E${last})` : '0', result: rupees(rows.reduce((n, x) => n + x.amount, 0)) }, '', ''];
+  totalsRow(t, [5]);
+  ws.views = [{ state: 'frozen', ySplit: 4 }];
+  printSetup(ws, { landscape: true, titleRows: '4:4' });
+  return wb;
+}
+
+/** Profit & Loss report. */
+export function profitLossWorkbook(pnl, label) {
+  const wb = newWorkbook();
+  const ws = wb.addWorksheet('Profit & Loss');
+  ws.columns = [{ width: 30 }, { width: 20 }];
+  title(ws, 'Profit & Loss', label, 2);
+  const rows = [
+    ['Income collected', pnl.income],
+    ['', null],
+    ['Fuel', -pnl.fuel],
+    ['Repairs', -pnl.repairs],
+    ['Salaries', -pnl.salaries],
+    ['Other expenses', -pnl.other],
+    ['Publisher cost', -pnl.publisherCost],
+    ['Total expenses', -pnl.totalExpenses],
+    ['', null],
+    ['Net profit / (loss)', pnl.netProfit],
+  ];
+  let r = 4;
+  for (const [l, v] of rows) {
+    const row = ws.getRow(r);
+    row.getCell(1).value = l;
+    row.getCell(1).font = { name: 'Calibri', bold: ['Total expenses', 'Net profit / (loss)', 'Income collected'].includes(l) };
+    if (v != null) {
+      row.getCell(2).value = rupees(v);
+      row.getCell(2).numFmt = RUPEE;
+      row.getCell(2).alignment = { horizontal: 'right' };
+      row.getCell(2).font = { bold: ['Total expenses', 'Net profit / (loss)', 'Income collected'].includes(l), color: { argb: v < 0 ? 'FFB91C1C' : v > 0 && l === 'Net profit / (loss)' ? 'FF15803D' : undefined } };
+    }
+    if (l === 'Total expenses' || l === 'Net profit / (loss)') {
+      row.getCell(1).border = { top: { style: 'medium', color: { argb: PRIMARY } } };
+      row.getCell(2).border = { top: { style: 'medium', color: { argb: PRIMARY } } };
+    }
+    r++;
+  }
+  if (pnl.marginPct != null) {
+    ws.getCell(r + 1, 1).value = 'Net margin';
+    ws.getCell(r + 1, 2).value = `${pnl.marginPct.toFixed(1)}%`;
+    ws.getCell(r + 1, 2).alignment = { horizontal: 'right' };
+  }
+  printSetup(ws);
   return wb;
 }
