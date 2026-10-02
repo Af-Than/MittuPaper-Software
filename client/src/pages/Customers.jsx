@@ -22,9 +22,9 @@ function CustomerCard({ c, onEdit, onDelete }) {
   const shown = c.subscriptions.slice(0, 3);
   const more = c.subscriptions.length - shown.length;
   return (
-    <article className="card group relative flex flex-col p-4 transition hover:-translate-y-0.5 hover:border-primary-200 hover:shadow-lift">
+    <article className="card group relative flex flex-col p-4 transition-colors hover:border-primary-200">
       <div className="flex items-start gap-3">
-        <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-primary-700 to-primary-500 text-sm font-semibold text-white" aria-hidden>{initials(c.name)}</span>
+        <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-primary-50 text-sm font-semibold text-primary" aria-hidden>{initials(c.name)}</span>
         <div className="min-w-0 flex-1">
           <h3 className="truncate font-semibold text-ink ml">
             {/* stretched link: the whole card opens the detail page */}
@@ -102,9 +102,9 @@ export default function Customers() {
           <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-muted" aria-hidden />
           <input className="input pl-9" type="search" placeholder="Search by name, phone or address" aria-label="Search customers" value={q} onChange={(e) => setQ(e.target.value)} />
         </div>
-        <div className="inline-flex flex-wrap gap-1 rounded-xl border border-line bg-surface p-1" role="group" aria-label="Filter customers">
+        <div className="inline-flex flex-wrap gap-1 rounded-lg border border-line bg-surface p-1" role="group" aria-label="Filter customers">
           {FILTERS.map((f) => (
-            <button key={f.key} onClick={() => setFilter(f.key)} aria-pressed={filter === f.key} className={`rounded-lg px-3 py-1.5 text-sm font-medium transition ${filter === f.key ? 'bg-primary text-white' : 'text-ink-soft hover:bg-primary-50'}`}>{f.label}</button>
+            <button key={f.key} onClick={() => setFilter(f.key)} aria-pressed={filter === f.key} className={`rounded-lg px-3 py-1.5 text-sm font-medium transition ${filter === f.key ? 'bg-primary-50 text-primary' : 'text-ink-soft hover:bg-canvas'}`}>{f.label}</button>
           ))}
         </div>
       </div>

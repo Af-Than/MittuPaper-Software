@@ -72,7 +72,7 @@ export default function CustomerDetail() {
       {/* Profile */}
       <section className="card p-5" aria-label="Customer profile">
         <div className="flex flex-wrap items-start gap-4">
-          <span className="flex h-16 w-16 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-primary-700 to-primary-500 text-xl font-semibold text-white" aria-hidden>{initials(customer.name)}</span>
+          <span className="flex h-16 w-16 shrink-0 items-center justify-center rounded-full bg-primary-50 text-xl font-semibold text-primary" aria-hidden>{initials(customer.name)}</span>
           <div className="min-w-0 flex-1">
             <div className="flex flex-wrap items-center gap-2">
               <h1 className="text-2xl font-bold text-ink ml">{customer.name}</h1>

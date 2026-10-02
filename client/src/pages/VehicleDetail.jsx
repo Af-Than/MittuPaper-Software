@@ -61,11 +61,11 @@ export default function VehicleDetail() {
           <div className="h-56" role="img" aria-label="Line chart of odometer reading over time">
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={chart} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
-                <CartesianGrid stroke="rgb(219 227 239)" strokeDasharray="3 3" vertical={false} />
-                <XAxis dataKey="date" tickLine={false} axisLine={{ stroke: 'rgb(219 227 239)' }} tick={{ fontSize: 11, fill: 'rgb(107 122 148)' }} />
-                <YAxis tickLine={false} axisLine={false} width={56} tick={{ fontSize: 12, fill: 'rgb(107 122 148)' }} />
+                <CartesianGrid stroke="rgb(237 240 245)" vertical={false} />
+                <XAxis dataKey="date" tickLine={false} axisLine={{ stroke: 'rgb(229 233 240)' }} tick={{ fontSize: 11, fill: 'rgb(98 110 130)' }} />
+                <YAxis tickLine={false} axisLine={false} width={56} tick={{ fontSize: 12, fill: 'rgb(98 110 130)' }} />
                 <Tooltip />
-                <Line dataKey="odometer" stroke="rgb(47 111 208)" strokeWidth={2} dot={{ r: 3 }} />
+                <Line dataKey="odometer" stroke="rgb(74 119 186)" strokeWidth={2} dot={{ r: 3 }} />
               </LineChart>
             </ResponsiveContainer>
           </div>

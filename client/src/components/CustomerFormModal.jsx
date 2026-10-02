@@ -91,7 +91,7 @@ export default function CustomerFormModal({ open, customer, onClose, onSaved }) 
         </div>
         {customer && (
           <label className="flex items-center gap-2 text-sm text-ink">
-            <input type="checkbox" className="h-4 w-4 rounded border-line accent-[rgb(20_74_159)]" checked={form.active} onChange={set('active')} />
+            <input type="checkbox" className="h-4 w-4 rounded border-line accent-[rgb(44_83_146)]" checked={form.active} onChange={set('active')} />
             Active customer (inactive customers are skipped when generating bills)
           </label>
         )}

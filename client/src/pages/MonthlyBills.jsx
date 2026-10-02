@@ -87,12 +87,12 @@ export default function MonthlyBills() {
           <span className="mb-1 block text-sm font-medium text-ink">Status</span>
           <div className="inline-flex rounded-xl border border-line p-1" role="group" aria-label="Filter by status">
             {STATUSES.map((s) => (
-              <button key={s.key} onClick={() => setStatus(s.key)} aria-pressed={status === s.key} className={`rounded-lg px-3 py-1.5 text-sm font-medium ${status === s.key ? 'bg-primary text-white' : 'text-ink-soft hover:bg-primary-50'}`}>{s.label}</button>
+              <button key={s.key} onClick={() => setStatus(s.key)} aria-pressed={status === s.key} className={`rounded-lg px-3 py-1.5 text-sm font-medium ${status === s.key ? 'bg-primary-50 text-primary' : 'text-ink-soft hover:bg-canvas'}`}>{s.label}</button>
             ))}
           </div>
         </div>
         <label className="flex items-center gap-2 pb-2 text-sm text-ink">
-          <input type="checkbox" className="h-4 w-4 rounded border-line accent-[rgb(20_74_159)]" checked={overdueOnly} onChange={(e) => setOverdueOnly(e.target.checked)} />
+          <input type="checkbox" className="h-4 w-4 rounded border-line accent-[rgb(44_83_146)]" checked={overdueOnly} onChange={(e) => setOverdueOnly(e.target.checked)} />
           2+ months overdue only
         </label>
         <div className="relative min-w-[220px] flex-1">

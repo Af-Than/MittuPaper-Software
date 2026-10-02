@@ -25,12 +25,12 @@ export default function NotificationsBell() {
 
   return (
     <div ref={boxRef} className="relative">
-      <button onClick={() => setOpen((o) => !o)} className="relative rounded-lg p-2 hover:bg-white/10" aria-label={`Notifications${total ? `, ${total} unread` : ''}`}>
+      <button onClick={() => setOpen((o) => !o)} className="relative rounded-lg p-2 text-ink-soft hover:bg-canvas" aria-label={`Notifications${total ? `, ${total} unread` : ''}`}>
         <Bell className="h-5 w-5" />
-        {total > 0 && <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-[#f5b942] px-1 text-[10px] font-bold text-primary-900">{total > 9 ? '9+' : total}</span>}
+        {total > 0 && <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-danger px-1 text-[10px] font-semibold text-white">{total > 9 ? '9+' : total}</span>}
       </button>
       {open && (
-        <div className="pop-in absolute right-0 top-full z-50 mt-2 w-80 rounded-xl border border-line bg-surface p-3 text-ink shadow-lift">
+        <div className="pop-in absolute right-0 top-full z-50 mt-2 w-80 rounded-lg border border-line bg-surface p-3 text-ink shadow-lift">
           <h3 className="mb-2 text-sm font-semibold">Notifications</h3>
           {!dash || !overdue ? (
             <p className="py-4 text-center text-sm text-ink-muted">Loading…</p>

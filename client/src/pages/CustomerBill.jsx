@@ -142,7 +142,7 @@ export default function CustomerBill() {
           {/* Banners */}
           <div className="no-print space-y-3">
             {!bill && (
-              <div className="flex flex-wrap items-center gap-3 rounded-xl border border-primary-200 bg-primary-50 px-4 py-3 text-sm text-primary-800" role="status">
+              <div className="flex flex-wrap items-center gap-3 rounded-lg border border-primary-100 bg-primary-50 px-4 py-3 text-sm text-primary-800" role="status">
                 <FileText className="h-5 w-5 shrink-0" aria-hidden />
                 <span className="flex-1">This is a <strong>preview</strong>. The bill for {monthLabel(year, month)} has not been generated yet.</span>
               </div>
@@ -170,7 +170,7 @@ export default function CustomerBill() {
           </div>
 
           {due.data?.totalDue > 0 && (
-            <div className="no-print mb-4 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-line bg-surface px-4 py-3">
+            <div className="no-print mb-4 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-line bg-surface px-4 py-3">
               <span className="text-sm text-ink-soft">Send a reminder for <strong className="text-ink">{money(due.data.totalDue)}</strong> across {due.data.months.length} month{due.data.months.length > 1 ? 's' : ''}:</span>
               <ReminderButton customerName={customer.name} phone={customer.phone} months={due.data.months} totalDue={due.data.totalDue} />
             </div>
@@ -178,18 +178,18 @@ export default function CustomerBill() {
 
           {/* Invoice (print area) */}
           <section className="card print-area overflow-hidden" aria-label="Bill">
-            <div className="flex flex-wrap items-start justify-between gap-4 border-b border-line bg-gradient-to-r from-primary-900 to-primary-700 px-6 py-5 text-white print:bg-none print:text-ink">
+            <div className="flex flex-wrap items-start justify-between gap-4 border-b border-line bg-surface px-6 py-5 text-ink">
               <div className="flex items-center gap-3">
                 <LogoMark className="h-11 w-11" />
                 <div>
                   <div className="text-lg font-bold">{BRAND.name}</div>
-                  <div className="text-xs text-primary-200 print:text-ink-muted">{BRAND.longTagline}</div>
+                  <div className="text-xs text-ink-muted">{BRAND.longTagline}</div>
                 </div>
               </div>
               <div className="text-right">
-                <div className="text-xs uppercase tracking-wide text-primary-200 print:text-ink-muted">Statement for</div>
+                <div className="text-xs uppercase tracking-wide text-ink-muted">Statement for</div>
                 <div className="text-xl font-bold">{monthLabel(year, month)}</div>
-                {bill && <div className="text-xs text-primary-200 print:text-ink-muted">Generated {formatDateTime(bill.generatedAt)}</div>}
+                {bill && <div className="text-xs text-ink-muted">Generated {formatDateTime(bill.generatedAt)}</div>}
               </div>
             </div>
 

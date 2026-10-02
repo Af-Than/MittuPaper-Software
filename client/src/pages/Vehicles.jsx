@@ -51,9 +51,9 @@ export default function Vehicles() {
           <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-muted" aria-hidden />
           <input className="input pl-9" type="search" placeholder="Search by registration" value={q} onChange={(e) => setQ(e.target.value)} />
         </div>
-        <div className="inline-flex flex-wrap gap-1 rounded-xl border border-line bg-surface p-1">
+        <div className="inline-flex flex-wrap gap-1 rounded-lg border border-line bg-surface p-1">
           {['', 'active', 'in-repair', 'retired'].map((s) => (
-            <button key={s} onClick={() => setStatus(s)} aria-pressed={status === s} className={`rounded-lg px-3 py-1.5 text-sm font-medium ${status === s ? 'bg-primary text-white' : 'text-ink-soft hover:bg-primary-50'}`}>{s ? VEHICLE_STATUS_LABEL[s] : 'All'}</button>
+            <button key={s} onClick={() => setStatus(s)} aria-pressed={status === s} className={`rounded-lg px-3 py-1.5 text-sm font-medium ${status === s ? 'bg-primary-50 text-primary' : 'text-ink-soft hover:bg-canvas'}`}>{s ? VEHICLE_STATUS_LABEL[s] : 'All'}</button>
           ))}
         </div>
       </div>
@@ -67,7 +67,7 @@ export default function Vehicles() {
         <>
           <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
             {data.items.map((v) => (
-              <article key={v._id} className="card group relative flex flex-col p-4 transition hover:-translate-y-0.5 hover:border-primary-200 hover:shadow-lift">
+              <article key={v._id} className="card group relative flex flex-col p-4 transition-colors hover:border-primary-200">
                 <div className="flex items-start gap-3">
                   <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-primary-50 text-primary" aria-hidden><Bike className="h-5 w-5" /></span>
                   <div className="min-w-0 flex-1">

@@ -44,7 +44,7 @@ export default function Salaries() {
             return (
               <article key={row.employee._id} className="card p-4">
                 <div className="flex items-start gap-3">
-                  <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-primary-700 to-primary-500 text-sm font-semibold text-white" aria-hidden>{initials(row.employee.name)}</span>
+                  <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-primary-50 text-sm font-semibold text-primary" aria-hidden>{initials(row.employee.name)}</span>
                   <div className="min-w-0 flex-1">
                     <h3 className="truncate font-semibold text-ink ml">{row.employee.name}</h3>
                     <p className="text-xs text-ink-muted">Base: {money(row.employee.monthlySalary)}</p>

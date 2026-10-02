@@ -90,10 +90,10 @@ export default function ExpenseDashboard() {
               <div className="h-72" role="img" aria-label="Stacked bar chart of monthly expenses by category with a line for income collected, over the last 12 months">
                 <ResponsiveContainer width="100%" height="100%">
                   <ComposedChart data={chart} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
-                    <CartesianGrid stroke="rgb(219 227 239)" strokeDasharray="3 3" vertical={false} />
-                    <XAxis dataKey="label" tickLine={false} axisLine={{ stroke: 'rgb(219 227 239)' }} tick={{ fill: 'rgb(107 122 148)', fontSize: 11 }} />
-                    <YAxis tickFormatter={moneyCompact} tickLine={false} axisLine={false} width={56} tick={{ fill: 'rgb(107 122 148)', fontSize: 12 }} />
-                    <Tooltip content={<ChartTooltip />} cursor={{ fill: 'rgb(238 244 253)' }} />
+                    <CartesianGrid stroke="rgb(237 240 245)" vertical={false} />
+                    <XAxis dataKey="label" tickLine={false} axisLine={{ stroke: 'rgb(229 233 240)' }} tick={{ fill: 'rgb(98 110 130)', fontSize: 11 }} />
+                    <YAxis tickFormatter={moneyCompact} tickLine={false} axisLine={false} width={56} tick={{ fill: 'rgb(98 110 130)', fontSize: 12 }} />
+                    <Tooltip content={<ChartTooltip />} cursor={{ fill: 'rgb(244 247 252)' }} />
                     <Bar dataKey="fuel" name="Fuel" stackId="e" fill={CATEGORY_COLOR.fuel} />
                     <Bar dataKey="repair" name="Repairs" stackId="e" fill={CATEGORY_COLOR.repair} />
                     <Bar dataKey="salary" name="Salaries" stackId="e" fill={CATEGORY_COLOR.salary} />

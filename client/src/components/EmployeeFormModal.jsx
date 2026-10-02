@@ -63,7 +63,7 @@ export default function EmployeeFormModal({ open, employee, onClose, onSaved }) 
         <Field label="Notes"><textarea className="input ml" rows={2} value={form.notes} onChange={set('notes')} maxLength={500} /></Field>
         {employee && (
           <label className="flex items-center gap-2 text-sm text-ink">
-            <input type="checkbox" className="h-4 w-4 rounded border-line accent-[rgb(20_74_159)]" checked={form.active} onChange={set('active')} />
+            <input type="checkbox" className="h-4 w-4 rounded border-line accent-[rgb(44_83_146)]" checked={form.active} onChange={set('active')} />
             Active employee
           </label>
         )}

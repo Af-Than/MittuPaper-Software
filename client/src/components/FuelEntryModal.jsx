@@ -90,7 +90,7 @@ export default function FuelEntryModal({ open, vehicle, vehicles = [], onClose, 
           <Field label="Receipt no."><input className="input" value={form.receiptNo} onChange={(e) => set({ receiptNo: e.target.value })} /></Field>
         </div>
         <label className="flex items-center gap-2 text-sm text-ink">
-          <input type="checkbox" className="h-4 w-4 rounded border-line accent-[rgb(20_74_159)]" checked={form.fullTank} onChange={(e) => set({ fullTank: e.target.checked })} />
+          <input type="checkbox" className="h-4 w-4 rounded border-line accent-[rgb(44_83_146)]" checked={form.fullTank} onChange={(e) => set({ fullTank: e.target.checked })} />
           Full tank (needed to calculate mileage accurately)
         </label>
         <Field label="Note"><input className="input" value={form.note} maxLength={200} onChange={(e) => set({ note: e.target.value })} /></Field>

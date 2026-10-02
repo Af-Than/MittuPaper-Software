@@ -1,5 +1,6 @@
-import { Children, cloneElement, isValidElement, useId } from 'react';
-import { AlertCircle, CheckCircle2, ChevronLeft, ChevronRight, CircleDot, Inbox, RefreshCw } from 'lucide-react';
+import { Children, cloneElement, isValidElement, useEffect, useId, useRef, useState } from 'react';
+import { Link } from 'react-router-dom';
+import { AlertCircle, CheckCircle2, ChevronLeft, ChevronRight, CircleDot, Inbox, MoreHorizontal, RefreshCw } from 'lucide-react';
 import { MONTHS, currentYearMonth, money, monthRangeLabel } from '../lib/format';
 
 /* ---------- Form field: label + control + hint + error, wired for accessibility ---------- */
@@ -186,4 +187,50 @@ export function MonthYearPicker({ year, month, onChange, hideMonth = false }) {
 export function shiftMonth({ year, month }, n) {
   const k = year * 12 + (month - 1) + n;
   return { year: Math.floor(k / 12), month: (k % 12) + 1 };
+}
+
+/**
+ * "More" menu for secondary page actions. items: [{ label, to?, onClick?, icon? }]
+ * Closes on Esc / outside click; arrow keys move between items.
+ */
+export function MoreMenu({ items, label = 'More actions' }) {
+  const [open, setOpen] = useState(false);
+  const root = useRef(null);
+  useEffect(() => {
+    if (!open) return undefined;
+    const onDown = (e) => { if (!root.current?.contains(e.target)) setOpen(false); };
+    const onKey = (e) => {
+      if (e.key === 'Escape') { setOpen(false); root.current?.querySelector('button')?.focus(); }
+      if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+        const els = [...root.current.querySelectorAll('[role="menuitem"]')];
+        const i = els.indexOf(document.activeElement);
+        e.preventDefault();
+        els[(i + (e.key === 'ArrowDown' ? 1 : -1) + els.length) % els.length]?.focus();
+      }
+    };
+    document.addEventListener('mousedown', onDown);
+    document.addEventListener('keydown', onKey);
+    return () => { document.removeEventListener('mousedown', onDown); document.removeEventListener('keydown', onKey); };
+  }, [open]);
+
+  const itemCls = 'flex w-full items-center gap-2 rounded-md px-3 py-2 text-left text-sm text-ink-soft hover:bg-canvas hover:text-ink focus:bg-canvas focus:outline-none';
+  return (
+    <div ref={root} className="relative">
+      <button type="button" className="btn-secondary px-2.5" aria-haspopup="menu" aria-expanded={open} aria-label={label} onClick={() => setOpen((o) => !o)}>
+        <MoreHorizontal className="h-4 w-4" aria-hidden />
+      </button>
+      {open && (
+        <div role="menu" className="pop-in absolute right-0 top-full z-30 mt-1 min-w-48 rounded-lg border border-line bg-surface p-1 shadow-lift">
+          {items.map((it) => {
+            const body = <>{it.icon && <it.icon className="h-4 w-4" aria-hidden />}{it.label}</>;
+            return it.to ? (
+              <Link key={it.label} role="menuitem" to={it.to} className={itemCls} onClick={() => setOpen(false)}>{body}</Link>
+            ) : (
+              <button key={it.label} type="button" role="menuitem" className={itemCls} onClick={() => { setOpen(false); it.onClick?.(); }}>{body}</button>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
 }

@@ -26,7 +26,7 @@ export default function EmployeeDetail() {
     <div className="space-y-6">
       <section className="card p-5" aria-label="Employee profile">
         <div className="flex flex-wrap items-start gap-4">
-          <span className="flex h-16 w-16 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-primary-700 to-primary-500 text-xl font-semibold text-white" aria-hidden>{initials(employee.name)}</span>
+          <span className="flex h-16 w-16 shrink-0 items-center justify-center rounded-full bg-primary-50 text-xl font-semibold text-primary" aria-hidden>{initials(employee.name)}</span>
           <div className="min-w-0 flex-1">
             <h1 className="text-2xl font-bold text-ink ml">{employee.name}</h1>
             <p className="mt-1 flex items-center gap-2 text-sm text-ink-soft"><Phone className="h-4 w-4 text-ink-muted" />{employee.phone}</p>
@@ -41,7 +41,7 @@ export default function EmployeeDetail() {
         {!employee.vehicles.length ? <EmptyState icon={Bike} title="No vehicles assigned" /> : (
           <div className="grid gap-3 p-5 sm:grid-cols-2 lg:grid-cols-3">
             {employee.vehicles.map((v) => (
-              <Link key={v._id} to={`/expenses/vehicles/${v._id}`} className="card p-3 transition hover:border-primary-200 hover:shadow-lift">
+              <Link key={v._id} to={`/expenses/vehicles/${v._id}`} className="card p-3 transition-colors hover:border-primary-200">
                 <div className="flex items-center justify-between"><span className="font-semibold">{v.registrationNumber}</span><Badge tone={v.status === 'active' ? 'success' : v.status === 'in-repair' ? 'warning' : 'neutral'}>{VEHICLE_STATUS_LABEL[v.status]}</Badge></div>
                 <p className="mt-1 text-xs text-ink-muted">{v.makeModel} · {v.odometer} km</p>
               </Link>

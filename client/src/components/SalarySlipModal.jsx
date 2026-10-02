@@ -17,11 +17,11 @@ export default function SalarySlipModal({ open, paymentId, onClose }) {
         <Skeleton className="h-64" />
       ) : (
         <div className="print-area rounded-xl border border-line">
-          <div className="flex items-center gap-3 border-b border-line bg-gradient-to-r from-primary-900 to-primary-700 px-5 py-4 text-white print:bg-none print:text-ink">
+          <div className="flex items-center gap-3 border-b border-line bg-surface px-5 py-4 text-ink">
             <LogoMark className="h-9 w-9" />
             <div>
               <div className="font-bold">{BRAND.name}</div>
-              <div className="text-xs text-primary-200 print:text-ink-muted">Salary Slip — {monthLabel(p.forYear, p.forMonth)}</div>
+              <div className="text-xs text-ink-muted">Salary Slip — {monthLabel(p.forYear, p.forMonth)}</div>
             </div>
           </div>
           <div className="grid grid-cols-2 gap-3 px-5 py-4 text-sm">

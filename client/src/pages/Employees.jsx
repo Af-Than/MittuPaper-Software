@@ -52,9 +52,9 @@ export default function Employees() {
             {data.items.map((e) => {
               const st = salaryStatusMeta(e.salaryStatus.status);
               return (
-                <article key={e._id} className="card group relative flex flex-col p-4 transition hover:-translate-y-0.5 hover:border-primary-200 hover:shadow-lift">
+                <article key={e._id} className="card group relative flex flex-col p-4 transition-colors hover:border-primary-200">
                   <div className="flex items-start gap-3">
-                    <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-primary-700 to-primary-500 text-sm font-semibold text-white" aria-hidden>{initials(e.name)}</span>
+                    <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-primary-50 text-sm font-semibold text-primary" aria-hidden>{initials(e.name)}</span>
                     <div className="min-w-0 flex-1">
                       <h3 className="truncate font-semibold text-ink ml"><Link to={`/expenses/employees/${e._id}`} className="after:absolute after:inset-0 after:content-['']">{e.name}</Link></h3>
                       <p className="flex items-center gap-1.5 text-xs text-ink-muted"><Phone className="h-3 w-3" />{e.phone}</p>

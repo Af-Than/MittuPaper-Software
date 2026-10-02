@@ -40,9 +40,9 @@ export default function GlobalSearch() {
 
   return (
     <div ref={boxRef} className="relative w-full max-w-md">
-      <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-white/60" aria-hidden />
+      <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-muted" aria-hidden />
       <input
-        className="w-full rounded-lg border border-white/20 bg-white/10 py-1.5 pl-9 pr-3 text-sm text-white placeholder:text-white/60 focus:border-white/40 focus:bg-white/15 focus:outline-none"
+        className="input w-full bg-canvas py-1.5 pl-9 pr-3"
         type="search"
         placeholder="Search customers, vehicles, employees…"
         value={q}
@@ -51,7 +51,7 @@ export default function GlobalSearch() {
         aria-label="Global search"
       />
       {open && dq.trim().length >= 2 && (
-        <div className="absolute left-0 top-full z-50 mt-1 w-full rounded-xl border border-line bg-surface p-2 text-ink shadow-lift">
+        <div className="absolute left-0 top-full z-50 mt-1 w-full rounded-lg border border-line bg-surface p-2 text-ink shadow-lift">
           {!results ? (
             <p className="px-2 py-3 text-sm text-ink-muted">Searching…</p>
           ) : !hasResults ? (

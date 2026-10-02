@@ -42,7 +42,7 @@ export default function DeliverySheet() {
             <tbody>
               {data.rows.map((r) => (
                 <tr key={r.customer.id} className={`border-b border-line/60 ${checked[r.customer.id] ? 'opacity-50' : ''}`}>
-                  <td className="td no-print"><input type="checkbox" className="h-4 w-4 rounded border-line accent-[rgb(20_74_159)]" checked={!!checked[r.customer.id]} onChange={() => toggle(r.customer.id)} aria-label={`Mark ${r.customer.name} delivered`} /></td>
+                  <td className="td no-print"><input type="checkbox" className="h-4 w-4 rounded border-line accent-[rgb(44_83_146)]" checked={!!checked[r.customer.id]} onChange={() => toggle(r.customer.id)} aria-label={`Mark ${r.customer.name} delivered`} /></td>
                   <td className="td font-medium ml">{r.customer.name}{r.customer.routeName && <span className="ml-2 text-xs text-ink-muted">({r.customer.routeName})</span>}</td>
                   <td className="td ml max-w-[260px] truncate">{r.customer.address}</td>
                   <td className="td ml">{r.items.map((i) => `${i.publicationName}${i.copies > 1 ? ` ×${i.copies}` : ''}`).join(', ')}</td>
