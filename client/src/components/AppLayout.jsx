@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState } from 'react';
+import { createContext, useContext, useEffect, useRef, useState } from 'react';
 import { Link, NavLink, Outlet, useLocation } from 'react-router-dom';
 import {
   Bike, CalendarRange, ChevronRight, FileSpreadsheet, FileText, Files, Fuel, History, LayoutDashboard, LogOut,
@@ -10,29 +10,31 @@ import { useToast } from '../context/ToastContext';
 import NotificationsBell from './NotificationsBell';
 import GlobalSearch from './GlobalSearch';
 import { initials } from '../lib/format';
+import { useViewEnter } from '../lib/motion';
 
 const NAV = [
   { to: '/', label: 'Dashboard', icon: LayoutDashboard, end: true },
-  { to: '/customers', label: 'Customers', icon: Users },
-  { to: '/publications', label: 'Publications & Rates', icon: Newspaper },
   { group: 'Billing' },
   { to: '/billing/customer', label: 'Customer Bill', icon: FileText },
   { to: '/billing/monthly', label: 'All Monthly Bills', icon: Files },
-  { to: '/billing/yearly', label: 'Yearly Report', icon: CalendarRange },
-  { group: 'Accounts' },
   { to: '/payments', label: 'Payments', icon: Wallet },
-  { to: '/activity', label: 'Activity & Logins', icon: History },
+  { to: '/delivery-sheet', label: 'Delivery Sheet', icon: Truck },
+  { group: 'Customers' },
+  { to: '/customers', label: 'Customers', icon: Users },
+  { to: '/publications', label: 'Publications & Rates', icon: Newspaper },
   { group: 'Expenses' },
-  { to: '/expenses', label: 'Expense Dashboard', icon: LayoutDashboard },
+  { to: '/expenses', label: 'Overview', icon: LayoutDashboard, end: true },
   { to: '/expenses/employees', label: 'Employees', icon: Users },
   { to: '/expenses/vehicles', label: 'Vehicles', icon: Bike },
   { to: '/expenses/fuel', label: 'Fuel Log', icon: Fuel },
   { to: '/expenses/repairs', label: 'Repairs', icon: Wrench },
   { to: '/expenses/salaries', label: 'Salaries', icon: Receipt },
   { to: '/expenses/ledger', label: 'Expense Ledger', icon: FileSpreadsheet },
+  { group: 'Reports' },
+  { to: '/billing/yearly', label: 'Yearly Report', icon: CalendarRange },
   { to: '/expenses/profit-loss', label: 'Profit & Loss', icon: TrendingUp },
-  { group: 'More' },
-  { to: '/delivery-sheet', label: 'Delivery Sheet', icon: Truck },
+  { to: '/activity', label: 'Activity & Logins', icon: History },
+  { group: 'Settings' },
   { to: '/settings', label: 'Settings', icon: SettingsIcon },
 ];
 
@@ -93,6 +95,8 @@ export default function AppLayout() {
   const [open, setOpen] = useState(false);
   const [crumb, setCrumb] = useState(null);
   const { pathname } = useLocation();
+  const view = useRef(null);
+  useViewEnter(view, pathname);
 
   useEffect(() => { setOpen(false); window.scrollTo(0, 0); }, [pathname]);
 
@@ -100,19 +104,19 @@ export default function AppLayout() {
     <nav aria-label="Main" className="flex flex-col gap-0.5 p-3">
       {NAV.map((item, i) =>
         item.group ? (
-          <div key={item.group} className="mt-4 px-3 pb-1 text-[11px] font-semibold uppercase tracking-wider text-ink-muted">{item.group}</div>
+          <div key={item.group} className="mt-5 px-3 pb-1 text-xs font-medium text-ink-muted">{item.group}</div>
         ) : (
           <NavLink
             key={item.to}
             to={item.to}
             end={item.end}
             className={({ isActive }) =>
-              `flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition ${
-                isActive ? 'bg-primary text-white shadow-sm' : 'text-ink-soft hover:bg-primary-50 hover:text-primary'
+              `flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors ${
+                isActive ? 'bg-primary-50 font-medium text-primary' : 'text-ink-soft hover:bg-canvas hover:text-ink'
               }`
             }
           >
-            <item.icon className="h-[18px] w-[18px]" aria-hidden />
+            <item.icon className="h-4 w-4 shrink-0" aria-hidden />
             {item.label}
           </NavLink>
         )
@@ -129,14 +133,14 @@ export default function AppLayout() {
     <div className="app-shell min-h-screen">
       <a href="#main" className="sr-only focus:not-sr-only focus:fixed focus:left-2 focus:top-2 focus:z-[60] focus:rounded focus:bg-white focus:px-3 focus:py-2">Skip to content</a>
 
-      {/* Top header band */}
-      <header className="no-print sticky top-0 z-40 bg-gradient-to-r from-primary-900 via-primary-800 to-primary-600 text-white shadow-md">
-        <div className="flex h-16 items-center justify-between px-4 lg:px-6">
-          <div className="flex items-center gap-3">
-            <button className="rounded-lg p-2 hover:bg-white/10 lg:hidden" onClick={() => setOpen(true)} aria-label="Open navigation menu">
+      {/* Top bar */}
+      <header className="no-print sticky top-0 z-40 border-b border-line bg-surface">
+        <div className="flex h-14 items-center justify-between gap-3 px-4 lg:px-6">
+          <div className="flex items-center gap-2">
+            <button className="rounded-lg p-2 text-ink-soft hover:bg-canvas lg:hidden" onClick={() => setOpen(true)} aria-label="Open navigation menu">
               <Menu className="h-5 w-5" />
             </button>
-            <Link to="/" aria-label="Go to dashboard"><Logo /></Link>
+            <Link to="/" aria-label="Go to dashboard"><Logo showTagline={false} /></Link>
           </div>
           <div className="hidden flex-1 justify-center px-4 md:flex">
             <GlobalSearch />
@@ -144,11 +148,11 @@ export default function AppLayout() {
           <div className="flex items-center gap-2 sm:gap-3">
             <NotificationsBell />
             <div className="hidden text-right leading-tight sm:block">
-              <div className="text-sm font-semibold">{admin?.name}</div>
-              <div className="text-xs text-primary-200">Administrator</div>
+              <div className="text-sm font-medium text-ink">{admin?.name}</div>
+              <div className="text-xs text-ink-muted">Administrator</div>
             </div>
-            <span className="flex h-9 w-9 items-center justify-center rounded-full bg-white/15 text-sm font-semibold ring-1 ring-white/30" aria-hidden>{initials(admin?.name)}</span>
-            <button onClick={handleLogout} className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium hover:bg-white/10">
+            <span className="flex h-8 w-8 items-center justify-center rounded-full bg-primary-50 text-xs font-semibold text-primary" aria-hidden>{initials(admin?.name)}</span>
+            <button onClick={handleLogout} className="btn-ghost btn-sm">
               <LogOut className="h-4 w-4" aria-hidden /> <span className="hidden sm:inline">Sign out</span>
               <span className="sr-only sm:hidden">Sign out</span>
             </button>
@@ -158,28 +162,30 @@ export default function AppLayout() {
 
       <div className="flex">
         {/* Desktop sidebar */}
-        <aside className="no-print sticky top-16 hidden h-[calc(100vh-4rem)] w-64 shrink-0 overflow-y-auto border-r border-line bg-surface lg:block">
+        <aside className="no-print sticky top-14 hidden h-[calc(100vh-3.5rem)] w-56 shrink-0 overflow-y-auto border-r border-line bg-surface lg:block">
           {sidebar}
         </aside>
 
         {/* Mobile drawer */}
         {open && (
           <div className="no-print fixed inset-0 z-50 lg:hidden">
-            <div className="absolute inset-0 bg-ink/50" onClick={() => setOpen(false)} aria-hidden />
-            <aside className="pop-in absolute left-0 top-0 h-full w-72 overflow-y-auto bg-surface shadow-lift">
-              <div className="flex h-16 items-center justify-between bg-primary-900 px-4">
+            <div className="fade-in absolute inset-0 bg-ink/40" onClick={() => setOpen(false)} aria-hidden />
+            <aside className="drawer-in absolute left-0 top-0 h-full w-64 overflow-y-auto bg-surface shadow-lift">
+              <div className="flex h-14 items-center justify-between border-b border-line px-4">
                 <Logo showTagline={false} />
-                <button className="rounded-lg p-2 text-white hover:bg-white/10" onClick={() => setOpen(false)} aria-label="Close navigation menu"><X className="h-5 w-5" /></button>
+                <button className="rounded-lg p-2 text-ink-soft hover:bg-canvas" onClick={() => setOpen(false)} aria-label="Close navigation menu"><X className="h-5 w-5" /></button>
               </div>
               {sidebar}
             </aside>
           </div>
         )}
 
-        <main id="main" className="app-main min-w-0 flex-1 px-4 py-5 sm:px-6 lg:px-8">
+        <main id="main" className="app-main min-w-0 flex-1 px-4 py-6 sm:px-6 lg:px-10">
           <CrumbContext.Provider value={setCrumb}>
-            <Breadcrumb extra={crumb} />
-            <Outlet />
+            <div ref={view}>
+              <Breadcrumb extra={crumb} />
+              <Outlet />
+            </div>
           </CrumbContext.Provider>
         </main>
       </div>

@@ -1,11 +1,10 @@
 import { useState } from 'react';
 import { Navigate, useLocation, useNavigate } from 'react-router-dom';
-import { Eye, EyeOff, Lock, LogIn, ShieldCheck, User } from 'lucide-react';
+import { Eye, EyeOff, Lock, LogIn, User } from 'lucide-react';
 import Logo from '../components/Logo';
 import { Field } from '../components/ui';
 import { useAuth } from '../context/AuthContext';
 import { errorMessage } from '../api/client';
-import { BRAND } from '../lib/brand';
 
 export default function Login() {
   const { admin, login } = useAuth();
@@ -38,36 +37,16 @@ export default function Login() {
   };
 
   return (
-    <div className="grid min-h-screen lg:grid-cols-2">
-      {/* Brand panel */}
-      <div className="relative hidden flex-col justify-between overflow-hidden bg-gradient-to-br from-primary-900 via-primary-800 to-primary-600 p-12 text-white lg:flex">
-        <Logo />
-        <div className="relative z-10 max-w-md">
-          <h1 className="text-4xl font-bold leading-tight">Every copy delivered. Every rupee accounted for.</h1>
-          <p className="mt-4 text-primary-100">
-            Manage customers, daily deliveries, rates and monthly billing for your newspaper and magazine agency, all in one trusted place.
-          </p>
-          <ul className="mt-8 space-y-3 text-sm text-primary-100">
-            {['Day-by-day billing with rate history', 'Carry-forward dues, tracked automatically', 'One-click Excel statements'].map((t) => (
-              <li key={t} className="flex items-center gap-2"><ShieldCheck className="h-4 w-4 text-[#f5b942]" aria-hidden /> {t}</li>
-            ))}
-          </ul>
-        </div>
-        <p className="relative z-10 text-xs text-primary-200">{BRAND.longTagline}</p>
-        <div className="pointer-events-none absolute -right-24 -top-24 h-96 w-96 rounded-full bg-white/5" aria-hidden />
-        <div className="pointer-events-none absolute -bottom-32 -left-16 h-96 w-96 rounded-full bg-white/5" aria-hidden />
-      </div>
-
-      {/* Form */}
-      <div className="flex items-center justify-center bg-canvas px-4 py-10">
-        <div className="w-full max-w-sm">
-          <div className="mb-8 lg:hidden"><Logo light={false} /></div>
-          <h2 className="text-2xl font-bold text-ink">Administrator sign in</h2>
-          <p className="mt-1 text-sm text-ink-muted">Use the credentials issued to you. Accounts cannot be self-registered.</p>
+    <div className="flex min-h-screen items-center justify-center bg-canvas px-4 py-10">
+      <div className="w-full max-w-sm">
+        <div className="mb-8 flex justify-center"><Logo /></div>
+        <div>
+          <h2 className="t-page text-center">Administrator sign in</h2>
+          <p className="mt-1 text-center text-sm text-ink-muted">Use the credentials issued to you. Accounts cannot be self-registered.</p>
 
           <form onSubmit={submit} noValidate className="card mt-6 space-y-4 p-6">
             {formError && (
-              <div role="alert" className="rounded-lg border border-danger/30 bg-danger-soft px-3 py-2 text-sm text-danger">{formError}</div>
+              <div role="alert" className="rounded-lg border border-danger/20 bg-danger-soft px-3 py-2 text-sm text-danger">{formError}</div>
             )}
             <Field label="Username" error={errors.username} required>
               <div className="relative">

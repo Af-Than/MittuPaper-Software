@@ -3,9 +3,9 @@ import { CheckCircle2, AlertCircle, Info, X } from 'lucide-react';
 
 const ToastContext = createContext(null);
 const STYLES = {
-  success: { icon: CheckCircle2, cls: 'border-success/30 text-success' },
-  error: { icon: AlertCircle, cls: 'border-danger/30 text-danger' },
-  info: { icon: Info, cls: 'border-primary/30 text-primary' },
+  success: { icon: CheckCircle2, cls: 'border-line text-success' },
+  error: { icon: AlertCircle, cls: 'border-line text-danger' },
+  info: { icon: Info, cls: 'border-line text-primary' },
 };
 
 export function ToastProvider({ children }) {
@@ -38,7 +38,7 @@ export function ToastProvider({ children }) {
         {toasts.map((t) => {
           const { icon: Icon, cls } = STYLES[t.type];
           return (
-            <div key={t.id} role={t.type === 'error' ? 'alert' : 'status'} className={`pop-in pointer-events-auto flex items-start gap-3 rounded-xl border bg-surface p-3 shadow-lift ${cls}`}>
+            <div key={t.id} role={t.type === 'error' ? 'alert' : 'status'} className={`pop-in pointer-events-auto flex items-start gap-3 rounded-lg border bg-surface p-3 shadow-lift ${cls}`}>
               <Icon className="mt-0.5 h-5 w-5 shrink-0" aria-hidden />
               <p className="flex-1 text-sm text-ink">{t.message}</p>
               <button onClick={() => dismiss(t.id)} className="rounded p-0.5 text-ink-muted hover:text-ink" aria-label="Dismiss notification">

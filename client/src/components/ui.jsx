@@ -41,7 +41,7 @@ const TONES = {
   danger: 'bg-danger-soft text-danger border-danger/20',
 };
 export function Badge({ tone = 'neutral', children, className = '' }) {
-  return <span className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-xs font-medium ${TONES[tone]} ${className}`}>{children}</span>;
+  return <span className={`inline-flex items-center gap-1 rounded-md border px-2 py-0.5 text-xs font-medium ${TONES[tone]} ${className}`}>{children}</span>;
 }
 
 const STATUS = {
@@ -92,10 +92,10 @@ export function TableSkeleton({ rows = 6, cols = 5 }) {
 export function EmptyState({ icon: Icon = Inbox, title, message, action }) {
   return (
     <div className="flex flex-col items-center px-6 py-12 text-center">
-      <span className="mb-3 flex h-14 w-14 items-center justify-center rounded-full bg-primary-50 text-primary">
-        <Icon className="h-7 w-7" aria-hidden />
+      <span className="mb-3 flex h-11 w-11 items-center justify-center rounded-full bg-canvas text-ink-muted">
+        <Icon className="h-5 w-5" aria-hidden />
       </span>
-      <h3 className="text-base font-semibold text-ink">{title}</h3>
+      <h3 className="text-sm font-semibold text-ink">{title}</h3>
       {message && <p className="mt-1 max-w-sm text-sm text-ink-muted">{message}</p>}
       {action && <div className="mt-4">{action}</div>}
     </div>
@@ -115,10 +115,10 @@ export function ErrorState({ message, onRetry }) {
 /* ---------- Page header ---------- */
 export function PageHeader({ title, subtitle, actions }) {
   return (
-    <div className="no-print mb-5 flex flex-wrap items-end justify-between gap-3">
+    <div className="no-print mb-6 flex flex-wrap items-end justify-between gap-3">
       <div>
-        <h1 className="text-2xl font-bold tracking-tight text-ink">{title}</h1>
-        {subtitle && <p className="mt-0.5 text-sm text-ink-muted">{subtitle}</p>}
+        <h1 className="t-page">{title}</h1>
+        {subtitle && <p className="mt-1 text-sm text-ink-muted">{subtitle}</p>}
       </div>
       {actions && <div className="flex flex-wrap items-center gap-2">{actions}</div>}
     </div>
@@ -128,7 +128,7 @@ export function PageHeader({ title, subtitle, actions }) {
 /* ---------- Tabs ---------- */
 export function Tabs({ tabs, value, onChange, label = 'Sections' }) {
   return (
-    <div role="tablist" aria-label={label} className="inline-flex flex-wrap gap-1 rounded-xl border border-line bg-surface p-1 shadow-card">
+    <div role="tablist" aria-label={label} className="inline-flex flex-wrap gap-1 rounded-lg bg-canvas p-1 ring-1 ring-line">
       {tabs.map((t) => {
         const active = t.key === value;
         return (
@@ -137,10 +137,10 @@ export function Tabs({ tabs, value, onChange, label = 'Sections' }) {
             role="tab"
             aria-selected={active}
             onClick={() => onChange(t.key)}
-            className={`rounded-lg px-4 py-1.5 text-sm font-medium transition ${active ? 'bg-primary text-white shadow-sm' : 'text-ink-soft hover:bg-primary-50 hover:text-primary'}`}
+            className={`rounded-md px-3.5 py-1.5 text-sm font-medium transition-colors ${active ? 'bg-surface text-ink shadow-card ring-1 ring-line' : 'text-ink-soft hover:text-ink'}`}
           >
             {t.label}
-            {t.count != null && <span className={`ml-2 rounded-full px-1.5 text-xs ${active ? 'bg-white/20' : 'bg-canvas text-ink-muted'}`}>{t.count}</span>}
+            {t.count != null && <span className={`ml-2 rounded-full px-1.5 text-xs ${active ? 'bg-canvas text-ink-soft' : 'bg-line/60 text-ink-muted'}`}>{t.count}</span>}
           </button>
         );
       })}

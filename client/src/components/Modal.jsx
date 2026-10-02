@@ -49,18 +49,18 @@ export default function Modal({ open, onClose, title, description, children, foo
   if (!open) return null;
   return createPortal(
     <div className="no-print fixed inset-0 z-50 flex items-end justify-center sm:items-center sm:p-4">
-      <div className="absolute inset-0 bg-ink/50 backdrop-blur-[2px]" onMouseDown={() => onCloseRef.current?.()} aria-hidden />
+      <div className="absolute inset-0 bg-ink/40 fade-in" onMouseDown={() => onCloseRef.current?.()} aria-hidden />
       <div
         ref={panel}
         role="dialog"
         aria-modal="true"
         aria-label={typeof title === 'string' ? title : undefined}
         tabIndex={-1}
-        className={`pop-in relative flex max-h-[92vh] w-full flex-col rounded-t-2xl bg-surface shadow-lift outline-none sm:rounded-card ${SIZES[size]}`}
+        className={`pop-in relative flex max-h-[92vh] w-full flex-col rounded-t-xl bg-surface shadow-lift outline-none sm:rounded-card ${SIZES[size]}`}
       >
         <div className="flex items-start justify-between gap-4 border-b border-line px-5 py-4">
           <div>
-            <h2 className="text-base font-semibold text-ink">{title}</h2>
+            <h2 className="t-section">{title}</h2>
             {description && <p className="mt-0.5 text-sm text-ink-muted">{description}</p>}
           </div>
           <button onClick={onClose} className="-mr-1 rounded-lg p-1.5 text-ink-muted hover:bg-canvas hover:text-ink" aria-label="Close dialog">
@@ -68,7 +68,7 @@ export default function Modal({ open, onClose, title, description, children, foo
           </button>
         </div>
         <div ref={body} className="overflow-y-auto px-5 py-4">{children}</div>
-        {footer && <div className="flex flex-wrap justify-end gap-2 border-t border-line bg-canvas/60 px-5 py-3 sm:rounded-b-card">{footer}</div>}
+        {footer && <div className="flex flex-wrap justify-end gap-2 border-t border-line bg-canvas px-5 py-3 sm:rounded-b-card">{footer}</div>}
       </div>
     </div>,
     document.body
