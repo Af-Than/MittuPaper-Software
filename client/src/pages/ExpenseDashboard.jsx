@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Bar, CartesianGrid, ComposedChart, Legend, Line, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import {
-  AlertTriangle, Banknote, Bike, Calendar, Fuel, IndianRupee, ShieldAlert, TrendingDown, TrendingUp, Users, Wrench,
+  AlertTriangle, Banknote, Bike, Calendar, IndianRupee, ShieldAlert, TrendingDown, TrendingUp, Users, Wrench,
 } from 'lucide-react';
 import { api } from '../api';
 import { useApi } from '../hooks/useApi';
@@ -67,12 +67,10 @@ export default function ExpenseDashboard() {
       />
       {error && <div className="card mb-5"><ErrorState message={error} onRetry={reload} /></div>}
 
-      <section aria-label="Key figures" className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
+      <section aria-label="Key figures" className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
         <StatCard loading={loading && !data} icon={Banknote} label="Income collected" value={pnl && money(pnl.income)} />
         <StatCard loading={loading && !data} icon={IndianRupee} tone="danger" label="Total expenses" value={pnl && money(pnl.totalExpenses)} />
         <StatCard loading={loading && !data} icon={pnl?.netProfit >= 0 ? TrendingUp : TrendingDown} tone={pnl?.netProfit >= 0 ? 'success' : 'danger'} label="Net profit" value={pnl && money(pnl.netProfit)} />
-        <StatCard loading={loading && !data} icon={Fuel} label="Fuel" value={pnl && money(pnl.fuel)} />
-        <StatCard loading={loading && !data} icon={Wrench} label="Repairs" value={pnl && money(pnl.repairs)} />
       </section>
 
       <div className="mt-6 grid gap-6 xl:grid-cols-3">
