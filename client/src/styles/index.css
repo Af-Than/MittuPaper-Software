@@ -45,6 +45,7 @@ html {
 }
 body {
   @apply bg-canvas text-ink;
+  overflow-x: hidden;
   font-size: 15px;
   line-height: 1.55;
 }
