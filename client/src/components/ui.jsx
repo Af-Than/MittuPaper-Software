@@ -116,12 +116,12 @@ export function ErrorState({ message, onRetry }) {
 /* ---------- Page header ---------- */
 export function PageHeader({ title, subtitle, actions }) {
   return (
-    <div className="no-print mb-6 flex flex-wrap items-end justify-between gap-3">
+    <div className="no-print mb-6 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
       <div>
         <h1 className="t-page">{title}</h1>
         {subtitle && <p className="mt-1 text-sm text-ink-muted">{subtitle}</p>}
       </div>
-      {actions && <div className="flex flex-wrap items-center gap-2">{actions}</div>}
+      {actions && <div className="flex flex-wrap items-center gap-2 sm:justify-end">{actions}</div>}
     </div>
   );
 }

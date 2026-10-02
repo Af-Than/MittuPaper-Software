@@ -56,22 +56,26 @@ body {
   outline-offset: 2px;
 }
 
+button, a, input, select, textarea {
+  -webkit-tap-highlight-color: transparent;
+}
+
 @layer components {
   .card { @apply rounded-card border border-line bg-surface shadow-card; }
   .input {
-    @apply block w-full rounded-lg border border-line bg-surface px-3 py-2 text-sm text-ink placeholder:text-ink-muted
+    @apply block w-full rounded-card border border-line bg-surface px-3 py-2 text-sm text-ink placeholder:text-ink-muted
       transition-colors focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500/20 disabled:bg-canvas disabled:text-ink-muted;
   }
   .input-error { @apply border-danger focus:border-danger focus:ring-danger/20; }
   .btn {
-    @apply inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition-colors
+    @apply inline-flex min-h-9 items-center justify-center gap-2 rounded-card px-4 py-2 text-sm font-medium transition-colors
       disabled:cursor-not-allowed disabled:opacity-55;
   }
   .btn-primary { @apply btn bg-primary text-white hover:bg-primary-800 active:bg-primary-900; }
   .btn-secondary { @apply btn border border-line bg-surface text-ink hover:bg-canvas; }
   .btn-danger { @apply btn bg-danger text-white hover:bg-red-800; }
   .btn-ghost { @apply btn text-ink-soft hover:bg-canvas hover:text-ink; }
-  .btn-sm { @apply px-3 py-1.5 text-xs; }
+  .btn-sm { @apply min-h-8 px-3 py-1.5 text-xs; }
   .th { @apply whitespace-nowrap px-4 py-2.5 text-left text-xs font-medium text-ink-muted; }
   .td { @apply px-4 py-3 align-middle; }
   /* page / section / caption scale */

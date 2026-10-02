@@ -30,7 +30,7 @@ export default {
       fontFamily: {
         sans: ['"Inter Variable"', '"Noto Sans Malayalam"', 'ui-sans-serif', 'system-ui', 'sans-serif'],
       },
-      borderRadius: { card: '10px' },
+      borderRadius: { card: '8px' },
       boxShadow: {
         card: '0 1px 2px rgb(28 36 51 / 0.04)',
         lift: '0 8px 24px rgb(28 36 51 / 0.10)',
