@@ -2,7 +2,7 @@ import { createContext, useContext, useEffect, useRef, useState } from 'react';
 import { Link, NavLink, Outlet, useLocation } from 'react-router-dom';
 import {
   Bike, CalendarRange, ChevronRight, FileSpreadsheet, FileText, Files, Fuel, History, LayoutDashboard, LogOut,
-  Menu, Newspaper, Receipt, Settings as SettingsIcon, TrendingUp, Truck, Users, Wallet, Wrench, X,
+  ChevronDown, Menu, Newspaper, Receipt, Settings as SettingsIcon, TrendingUp, Truck, Users, Wallet, Wrench, X,
 } from 'lucide-react';
 import Logo from './Logo';
 import { useAuth } from '../context/AuthContext';
@@ -24,12 +24,12 @@ const NAV = [
   { to: '/publications', label: 'Publications & Rates', icon: Newspaper },
   { group: 'Expenses' },
   { to: '/expenses', label: 'Overview', icon: LayoutDashboard, end: true },
-  { to: '/expenses/employees', label: 'Employees', icon: Users },
-  { to: '/expenses/vehicles', label: 'Vehicles', icon: Bike },
-  { to: '/expenses/fuel', label: 'Fuel Log', icon: Fuel },
-  { to: '/expenses/repairs', label: 'Repairs', icon: Wrench },
-  { to: '/expenses/salaries', label: 'Salaries', icon: Receipt },
-  { to: '/expenses/ledger', label: 'Expense Ledger', icon: FileSpreadsheet },
+  { to: '/expenses/employees', label: 'Employees', icon: Users, section: 'Expenses' },
+  { to: '/expenses/vehicles', label: 'Vehicles', icon: Bike, section: 'Expenses' },
+  { to: '/expenses/fuel', label: 'Fuel Log', icon: Fuel, section: 'Expenses' },
+  { to: '/expenses/repairs', label: 'Repairs', icon: Wrench, section: 'Expenses' },
+  { to: '/expenses/salaries', label: 'Salaries', icon: Receipt, section: 'Expenses' },
+  { to: '/expenses/ledger', label: 'Expense Ledger', icon: FileSpreadsheet, section: 'Expenses' },
   { group: 'Reports' },
   { to: '/billing/yearly', label: 'Yearly Report', icon: CalendarRange },
   { to: '/expenses/profit-loss', label: 'Profit & Loss', icon: TrendingUp },
@@ -93,6 +93,7 @@ export default function AppLayout() {
   const { admin, logout } = useAuth();
   const toast = useToast();
   const [open, setOpen] = useState(false);
+  const [expensesOpen, setExpensesOpen] = useState(false);
   const [crumb, setCrumb] = useState(null);
   const { pathname } = useLocation();
   const view = useRef(null);
@@ -102,17 +103,24 @@ export default function AppLayout() {
 
   const sidebar = (
     <nav aria-label="Main" className="flex flex-col gap-0.5 p-3">
-      {NAV.map((item, i) =>
+      {NAV.map((item) =>
+        item.section === 'Expenses' && !expensesOpen ? null :
         item.group ? (
-          <div key={item.group} className="mt-5 px-3 pb-1 text-xs font-medium text-ink-muted">{item.group}</div>
+          item.group === 'Expenses' ? (
+            <button key={item.group} type="button" onClick={() => setExpensesOpen((value) => !value)} className="mt-5 flex w-full items-center justify-between px-3 pb-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-navy-muted hover:text-white">
+              {item.group}<ChevronDown className={`h-3.5 w-3.5 transition-transform ${expensesOpen ? 'rotate-180' : ''}`} aria-hidden />
+            </button>
+          ) : (
+            <div key={item.group} className="mt-5 px-3 pb-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-navy-muted">{item.group}</div>
+          )
         ) : (
           <NavLink
             key={item.to}
             to={item.to}
             end={item.end}
             className={({ isActive }) =>
-              `flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors ${
-                isActive ? 'bg-primary-50 font-medium text-primary' : 'text-ink-soft hover:bg-canvas hover:text-ink'
+              `relative flex items-center gap-3 rounded-card px-3 py-2 text-sm transition-colors ${
+                isActive ? 'bg-primary-500 font-medium text-white shadow-button before:absolute before:inset-y-2 before:left-0 before:w-1 before:rounded-r-full before:bg-accent' : 'text-blue-100 hover:bg-navy-soft hover:text-white'
               }`
             }
           >
@@ -130,14 +138,14 @@ export default function AppLayout() {
   };
 
   return (
-    <div className="app-shell min-h-screen">
+    <div className="app-shell min-h-screen bg-canvas">
       <a href="#main" className="sr-only focus:not-sr-only focus:fixed focus:left-2 focus:top-2 focus:z-[60] focus:rounded focus:bg-white focus:px-3 focus:py-2">Skip to content</a>
 
       {/* Top bar */}
-      <header className="no-print sticky top-0 z-40 border-b border-line bg-surface">
+      <header className="no-print sticky top-0 z-40 border-b border-line bg-surface shadow-sm">
         <div className="flex h-14 items-center justify-between gap-3 px-4 lg:px-6">
           <div className="flex items-center gap-2">
-            <button className="rounded-lg p-2 text-ink-soft hover:bg-canvas lg:hidden" onClick={() => setOpen(true)} aria-label="Open navigation menu">
+            <button className="rounded-card p-2 text-ink-soft hover:bg-canvas lg:hidden" onClick={() => setOpen(true)} aria-label="Open navigation menu">
               <Menu className="h-5 w-5" />
             </button>
             <Link to="/" aria-label="Go to dashboard"><Logo showTagline={false} /></Link>
@@ -162,7 +170,8 @@ export default function AppLayout() {
 
       <div className="flex">
         {/* Desktop sidebar */}
-        <aside className="no-print sticky top-14 hidden h-[calc(100vh-3.5rem)] w-56 shrink-0 overflow-y-auto border-r border-line bg-surface lg:block">
+        <aside className="no-print sticky top-14 hidden h-[calc(100vh-3.5rem)] w-60 shrink-0 overflow-y-auto bg-navy shadow-[4px_0_18px_rgb(15_42_74_/_0.12)] lg:block">
+          <div className="border-b border-white/10 px-5 py-5"><Logo light /></div>
           {sidebar}
         </aside>
 
@@ -170,10 +179,10 @@ export default function AppLayout() {
         {open && (
           <div className="no-print fixed inset-0 z-50 lg:hidden">
             <div className="fade-in absolute inset-0 bg-ink/40" onClick={() => setOpen(false)} aria-hidden />
-            <aside className="drawer-in absolute left-0 top-0 h-full w-64 overflow-y-auto bg-surface shadow-lift">
+            <aside className="drawer-in absolute left-0 top-0 h-full w-72 overflow-y-auto bg-navy shadow-lift">
               <div className="flex h-14 items-center justify-between border-b border-line px-4">
-                <Logo showTagline={false} />
-                <button className="rounded-lg p-2 text-ink-soft hover:bg-canvas" onClick={() => setOpen(false)} aria-label="Close navigation menu"><X className="h-5 w-5" /></button>
+                <Logo light showTagline={false} />
+                <button className="rounded-card p-2 text-blue-100 hover:bg-navy-soft" onClick={() => setOpen(false)} aria-label="Close navigation menu"><X className="h-5 w-5" /></button>
               </div>
               {sidebar}
             </aside>

@@ -1,7 +1,7 @@
 import { Children, cloneElement, isValidElement, useEffect, useId, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { AlertCircle, CheckCircle2, ChevronLeft, ChevronRight, CircleDot, Inbox, MoreHorizontal, RefreshCw } from 'lucide-react';
-import { MONTHS, currentYearMonth, money, monthRangeLabel } from '../lib/format';
+import { MONTHS, currentYearMonth, initials, money, monthRangeLabel } from '../lib/format';
 
 /* ---------- Form field: label + control + hint + error, wired for accessibility ---------- */
 export function Field({ label, error, hint, required, children, className = '' }) {
@@ -31,6 +31,17 @@ export function Field({ label, error, hint, required, children, className = '' }
       ) : null}
     </div>
   );
+}
+
+const AVATAR_PALETTE = [
+  'bg-blue-600', 'bg-indigo-600', 'bg-teal-600', 'bg-amber-600',
+  'bg-rose-600', 'bg-violet-600', 'bg-cyan-700', 'bg-emerald-600',
+];
+
+export function Avatar({ name = '', className = 'h-9 w-9', size = 'text-xs' }) {
+  const hash = [...name].reduce((total, char) => total + char.charCodeAt(0), 0);
+  const color = AVATAR_PALETTE[hash % AVATAR_PALETTE.length];
+  return <span className={`inline-flex shrink-0 items-center justify-center rounded-full font-semibold text-white ${color} ${className} ${size}`} aria-hidden>{initials(name)}</span>;
 }
 
 /* ---------- Badges ---------- */

@@ -10,15 +10,15 @@ export const MOTION = { quick: 0.15, base: 0.25, distance: 8, stagger: 0.04, eas
 export const prefersReducedMotion = () =>
   typeof window !== 'undefined' && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
 
-/** Fade + slight rise for a view when `key` changes (route change). Animates opacity/transform only. */
+/** Slight rise for a view when `key` changes (route change). Avoids opacity so background tabs never leave a view washed out. */
 export function useViewEnter(scopeRef, key) {
   useGSAP(
     () => {
       if (prefersReducedMotion() || !scopeRef.current) return;
       gsap.fromTo(
         scopeRef.current,
-        { autoAlpha: 0, y: MOTION.distance },
-        { autoAlpha: 1, y: 0, duration: MOTION.base, ease: MOTION.ease, clearProps: 'transform,visibility,opacity' }
+        { y: MOTION.distance },
+        { y: 0, duration: MOTION.base, ease: MOTION.ease, clearProps: 'transform' }
       );
     },
     { dependencies: [key], scope: scopeRef }

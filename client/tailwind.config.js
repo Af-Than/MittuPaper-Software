@@ -26,14 +26,21 @@ export default {
         warning: { DEFAULT: token('warning'), soft: token('warning-soft') },
         danger: { DEFAULT: token('danger'), soft: token('danger-soft') },
         chart: { billed: token('chart-billed'), collected: token('chart-collected') },
+        navy: { DEFAULT: token('navy'), soft: token('navy-soft'), muted: token('navy-muted') },
+        accent: token('accent'),
       },
       fontFamily: {
         sans: ['"Inter Variable"', '"Noto Sans Malayalam"', 'ui-sans-serif', 'system-ui', 'sans-serif'],
       },
       borderRadius: { card: '8px' },
       boxShadow: {
-        card: '0 1px 2px rgb(28 36 51 / 0.04)',
-        lift: '0 8px 24px rgb(28 36 51 / 0.10)',
+        card: '0 2px 6px rgb(15 42 74 / 0.05), 0 10px 24px rgb(15 42 74 / 0.04)',
+        lift: '0 14px 32px rgb(15 42 74 / 0.14)',
+        button: '0 4px 10px rgb(37 99 235 / 0.22)',
+        'button-hover': '0 8px 18px rgb(37 99 235 / 0.28)',
+      },
+      backgroundImage: {
+        hero: 'linear-gradient(115deg, rgb(15 42 74) 0%, rgb(29 78 216) 58%, rgb(13 148 136) 100%)',
       },
     },
   },

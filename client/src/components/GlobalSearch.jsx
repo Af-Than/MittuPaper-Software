@@ -42,7 +42,7 @@ export default function GlobalSearch() {
     <div ref={boxRef} className="relative w-full max-w-md">
       <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-muted" aria-hidden />
       <input
-        className="input w-full bg-canvas py-1.5 pl-9 pr-3"
+        className="input w-full border-transparent bg-primary-50/70 py-1.5 pl-9 pr-3 shadow-none focus:border-primary-200 focus:bg-surface"
         type="search"
         placeholder="Search customers, vehicles, employees…"
         value={q}

@@ -56,9 +56,9 @@ export default function Modal({ open, onClose, title, description, children, foo
         aria-modal="true"
         aria-label={typeof title === 'string' ? title : undefined}
         tabIndex={-1}
-        className={`pop-in relative flex max-h-[92vh] w-full flex-col rounded-t-xl bg-surface shadow-lift outline-none sm:rounded-card ${SIZES[size]}`}
+        className={`pop-in relative flex max-h-[92vh] w-full flex-col rounded-t-2xl bg-surface shadow-lift outline-none sm:rounded-2xl ${SIZES[size]}`}
       >
-        <div className="flex items-start justify-between gap-4 border-b border-line px-5 py-4">
+        <div className="flex items-start justify-between gap-4 border-b border-line bg-primary-50/45 px-5 py-4 sm:rounded-t-2xl">
           <div>
             <h2 className="t-section">{title}</h2>
             {description && <p className="mt-0.5 text-sm text-ink-muted">{description}</p>}

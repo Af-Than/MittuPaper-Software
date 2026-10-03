@@ -4,22 +4,25 @@
 
 /* ---------- Theme tokens (RGB triplets so Tailwind opacity modifiers work) ---------- */
 :root {
-  /* one muted primary blue */
-  --primary-50: 244 247 252;
-  --primary-100: 232 239 249;
-  --primary-200: 205 220 241;
-  --primary-500: 74 119 186;
-  --primary-600: 55 99 168;
-  --primary-700: 44 83 146;
-  --primary-800: 36 68 120;
-  --primary-900: 28 54 96;
+  --primary-50: 239 246 255;
+  --primary-100: 219 234 254;
+  --primary-200: 191 219 254;
+  --primary-500: 59 130 246;
+  --primary-600: 37 99 235;
+  --primary-700: 29 78 216;
+  --primary-800: 30 64 175;
+  --primary-900: 23 37 84;
 
-  --canvas: 248 249 251;
+  --navy: 15 42 74;
+  --navy-soft: 24 58 96;
+  --navy-muted: 157 181 207;
+  --canvas: 238 243 249;
   --surface: 255 255 255;
-  --line: 229 233 240;
+  --line: 216 225 235;
   --ink: 28 36 51;
   --ink-soft: 71 82 102;
   --ink-muted: 98 110 130;
+  --accent: 245 158 11;
 
   /* colour is reserved for status */
   --success: 22 112 64;
@@ -29,9 +32,8 @@
   --danger: 176 38 38;
   --danger-soft: 252 237 237;
 
-  /* chart series: muted blue + muted slate-teal */
-  --chart-billed: 74 119 186;
-  --chart-collected: 140 168 150;
+  --chart-billed: 37 99 235;
+  --chart-collected: 13 148 136;
 
   /* motion tokens (transitions.dev scale) */
   --duration-quick: 150ms;
@@ -62,7 +64,7 @@ button, a, input, select, textarea {
 }
 
 @layer components {
-  .card { @apply rounded-card border border-line bg-surface shadow-card; }
+  .card { @apply rounded-card border border-line bg-surface shadow-card transition-shadow duration-200; }
   .input {
     @apply block w-full rounded-card border border-line bg-surface px-3 py-2 text-sm text-ink placeholder:text-ink-muted
       transition-colors focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500/20 disabled:bg-canvas disabled:text-ink-muted;
@@ -72,18 +74,27 @@ button, a, input, select, textarea {
     @apply inline-flex min-h-9 items-center justify-center gap-2 rounded-card px-4 py-2 text-sm font-medium transition-colors
       disabled:cursor-not-allowed disabled:opacity-55;
   }
-  .btn-primary { @apply btn bg-primary text-white hover:bg-primary-800 active:bg-primary-900; }
+  .btn-primary { @apply btn bg-gradient-to-r from-primary-600 to-primary-500 text-white shadow-[0_4px_10px_rgb(37_99_235_/_0.22)] hover:from-primary-700 hover:to-primary-600 hover:shadow-[0_8px_18px_rgb(37_99_235_/_0.28)] active:from-primary-800 active:to-primary-700; }
   .btn-secondary { @apply btn border border-line bg-surface text-ink hover:bg-canvas; }
   .btn-danger { @apply btn bg-danger text-white hover:bg-red-800; }
   .btn-ghost { @apply btn text-ink-soft hover:bg-canvas hover:text-ink; }
   .btn-sm { @apply min-h-8 px-3 py-1.5 text-xs; }
-  .th { @apply whitespace-nowrap px-4 py-2.5 text-left text-xs font-medium text-ink-muted; }
+  .th { @apply whitespace-nowrap bg-primary-50/70 px-4 py-2.5 text-left text-xs font-semibold uppercase tracking-wide text-ink-muted; }
   .td { @apply px-4 py-3 align-middle; }
   /* page / section / caption scale */
   .t-page { @apply text-xl font-semibold tracking-tight text-ink sm:text-2xl; }
   .t-section { @apply text-base font-semibold text-ink; }
   .t-caption { @apply text-xs text-ink-muted; }
 }
+
+@layer utilities {
+  table thead { position: sticky; top: 0; z-index: 10; }
+  table tbody tr { transition: background-color 150ms ease; }
+  table tbody tr:hover { background-color: rgb(var(--primary-50) / 0.62); }
+}
+
+.dashboard-card:hover, .quick-action:hover { transform: translateY(-2px); }
+.dashboard-card:hover { box-shadow: 0 16px 32px rgb(15 42 74 / 0.12); }
 
 /* ---------- Skeleton: quiet pulse ---------- */
 @keyframes skeleton-pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.55; } }
@@ -105,7 +116,7 @@ button, a, input, select, textarea {
 .drawer-in { animation: drawer-in var(--duration-fast) var(--ease-smooth-out); }
 
 @media (prefers-reduced-motion: reduce) {
-  .skeleton, .pop-in, .fade-in, .drawer-in { animation: none; }
+  .skeleton, .pop-in, .fade-in, .drawer-in, .dashboard-card, .quick-action { animation: none; transition: none; transform: none !important; }
 }
 
 /* ---------- Print: only the invoice area ---------- */

@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Navigate, useLocation, useNavigate } from 'react-router-dom';
-import { Eye, EyeOff, Lock, LogIn, User } from 'lucide-react';
+import { BarChart3, Eye, EyeOff, Lock, LogIn, Newspaper, Truck, User } from 'lucide-react';
 import Logo from '../components/Logo';
 import { Field } from '../components/ui';
 import { useAuth } from '../context/AuthContext';
@@ -37,14 +37,23 @@ export default function Login() {
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-canvas px-4 py-10">
-      <div className="w-full max-w-sm">
-        <div className="mb-8 flex justify-center"><Logo /></div>
-        <div>
-          <h2 className="t-page text-center">Administrator sign in</h2>
-          <p className="mt-1 text-center text-sm text-ink-muted">Use the credentials issued to you. Accounts cannot be self-registered.</p>
+    <div className="grid min-h-screen bg-canvas lg:grid-cols-[minmax(360px,0.9fr)_1.1fr]">
+      <section className="relative hidden overflow-hidden bg-hero p-10 text-white lg:flex lg:flex-col lg:justify-between" aria-label="PaperTrail overview">
+        <div className="pointer-events-none absolute -bottom-24 -left-24 h-80 w-80 rounded-full border-[36px] border-white/10" aria-hidden />
+        <div className="relative"><Logo light /><p className="mt-12 max-w-sm text-4xl font-bold leading-tight">The calm way to run your delivery rounds.</p><p className="mt-4 max-w-md text-base leading-7 text-blue-100">Bills, customers, routes and expenses in one clear workspace built for the people who keep every morning moving.</p></div>
+        <div className="relative grid grid-cols-3 gap-3">
+          {[['Routes', Truck], ['Publications', Newspaper], ['Insights', BarChart3]].map(([label, Icon]) => <div key={label} className="rounded-2xl border border-white/15 bg-white/10 p-4 backdrop-blur"><Icon className="h-5 w-5 text-amber-300" aria-hidden /><p className="mt-6 text-sm font-medium text-blue-50">{label}</p></div>)}
+        </div>
+      </section>
+      <section className="flex items-center justify-center px-4 py-10 sm:px-8">
+        <div className="w-full max-w-md">
+          <div className="mb-8 flex justify-center lg:hidden"><Logo /></div>
+          <div>
+            <p className="mb-2 text-sm font-semibold uppercase tracking-[0.16em] text-primary">Welcome back</p>
+            <h2 className="t-page">Administrator sign in</h2>
+            <p className="mt-1 text-sm text-ink-muted">Use the credentials issued to you. Accounts cannot be self-registered.</p>
 
-          <form onSubmit={submit} noValidate className="card mt-6 space-y-4 p-6">
+          <form onSubmit={submit} noValidate className="card mt-6 space-y-4 p-6 shadow-lift">
             {formError && (
               <div role="alert" className="rounded-lg border border-danger/20 bg-danger-soft px-3 py-2 text-sm text-danger">{formError}</div>
             )}
@@ -70,6 +79,7 @@ export default function Login() {
           <p className="mt-4 text-center text-xs text-ink-muted">Sign-ins are recorded in the activity log.</p>
         </div>
       </div>
+      </section>
     </div>
   );
 }

@@ -25,7 +25,7 @@ export default function NotificationsBell() {
 
   return (
     <div ref={boxRef} className="relative">
-      <button onClick={() => setOpen((o) => !o)} className="relative rounded-lg p-2 text-ink-soft hover:bg-canvas" aria-label={`Notifications${total ? `, ${total} unread` : ''}`}>
+      <button onClick={() => setOpen((o) => !o)} className="relative rounded-card p-2 text-ink-soft hover:bg-primary-50" aria-label={`Notifications${total ? `, ${total} unread` : ''}`}>
         <Bell className="h-5 w-5" />
         {total > 0 && <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-danger px-1 text-[10px] font-semibold text-white">{total > 9 ? '9+' : total}</span>}
       </button>

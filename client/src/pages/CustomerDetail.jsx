@@ -160,7 +160,7 @@ export default function CustomerDetail() {
 
       {/* Bills + payments */}
       <div className="grid gap-6 xl:grid-cols-2">
-        <section className="card" aria-label="Bill history">
+        <section className="card min-w-0" aria-label="Bill history">
           <div className="border-b border-line px-5 py-4"><h2 className="text-base font-semibold text-ink">Bills</h2></div>
           {bills.loading && !bills.data ? <TableSkeleton rows={4} cols={4} /> : !bills.data?.items.length ? (
             <EmptyState icon={FileText} title="No bills yet" message="Bills appear here once they are generated." />
@@ -184,7 +184,7 @@ export default function CustomerDetail() {
           )}
         </section>
 
-        <section className="card" aria-label="Payment history">
+        <section className="card min-w-0" aria-label="Payment history">
           <div className="border-b border-line px-5 py-4"><h2 className="text-base font-semibold text-ink">Payments</h2></div>
           {payments.loading && !payments.data ? <TableSkeleton rows={4} cols={4} /> : !payments.data?.items.length ? (
             <EmptyState title="No payments yet" message="Recorded payments will be listed here." />
